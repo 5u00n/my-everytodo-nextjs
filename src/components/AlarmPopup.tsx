@@ -33,6 +33,7 @@ export default function AlarmPopup({
   const [remainingTime, setRemainingTime] = useState<number>(0);
   const [currentRepeat, setCurrentRepeat] = useState<number>(0);
   const [activeOscillator, setActiveOscillator] = useState<OscillatorNode | null>(null);
+  const [vibrationId, setVibrationId] = useState<number | null>(null);
 
   useEffect(() => {
     if (isVisible) {
@@ -108,6 +109,7 @@ export default function AlarmPopup({
       setAlarmInterval(null);
     }
     stopAlarmSound();
+    stopVibration();
     setIsPlaying(false);
   };
 
@@ -121,6 +123,18 @@ export default function AlarmPopup({
         // Oscillator might already be stopped
       }
       setActiveOscillator(null);
+    }
+  };
+
+  // Stop vibration
+  const stopVibration = () => {
+    if (vibrationId) {
+      clearTimeout(vibrationId);
+      setVibrationId(null);
+    }
+    // Try to stop any ongoing vibration
+    if ('vibrate' in navigator) {
+      navigator.vibrate(0); // Stop vibration
     }
   };
 
@@ -192,16 +206,23 @@ export default function AlarmPopup({
         setActiveOscillator(null);
       }, repeatDurationMs);
       
-      // Add gentler vibration pattern
-      if ('vibrate' in navigator) {
-        const vibrationPattern = [];
-        const vibrationCycles = Math.ceil(repeatDurationSeconds / 1); // 1-second vibration cycles
+      // Add gentler vibration pattern with timeout control
+      if ('vibrate' in navigator && !isMuted) {
+        const startVibration = () => {
+          const vibrationPattern = [150, 100, 150, 100, 150, 100]; // 1-second pattern
+          navigator.vibrate(vibrationPattern);
+          
+          // Schedule next vibration cycle
+          const vibrationTimeout = setTimeout(() => {
+            if (!isMuted) {
+              startVibration();
+            }
+          }, 1000);
+          
+          setVibrationId(vibrationTimeout as unknown as number);
+        };
         
-        for (let i = 0; i < vibrationCycles; i++) {
-          vibrationPattern.push(150, 100, 150, 100, 150, 100); // Shorter, gentler pattern
-        }
-        
-        navigator.vibrate(vibrationPattern);
+        startVibration();
       }
     } catch (error) {
       console.log('Audio alarm not supported:', error);
@@ -222,6 +243,13 @@ export default function AlarmPopup({
       onSnooze(todoId, minutes);
     }
     onDismiss();
+  };
+
+  const handleDismiss = () => {
+    stopAlarmSequence(); // Stop alarm sound
+    if (onDismiss) {
+      onDismiss();
+    }
   };
 
   const toggleMute = () => {
@@ -315,7 +343,7 @@ export default function AlarmPopup({
             </div>
 
             <button
-              onClick={onDismiss}
+              onClick={handleDismiss}
               className="w-full bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition-colors"
             >
               <X className="w-4 h-4" />
