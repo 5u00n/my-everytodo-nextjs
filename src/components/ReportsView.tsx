@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { database } from '@/lib/firebase';
 import { ref, onValue, off } from 'firebase/database';
@@ -15,7 +15,6 @@ import {
   Target,
   Award,
   Activity,
-  Filter,
   Download
 } from 'lucide-react';
 import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
@@ -70,13 +69,7 @@ export default function ReportsView() {
     return () => off(todosRef, 'value', unsubscribe);
   }, [user]);
 
-  useEffect(() => {
-    if (todos.length > 0) {
-      generateReport();
-    }
-  }, [todos, timeFilter]);
-
-  const getFilteredTodos = () => {
+  const getFilteredTodos = useCallback(() => {
     const now = new Date();
     switch (timeFilter) {
       case 'week':
@@ -96,9 +89,9 @@ export default function ReportsView() {
       default:
         return todos;
     }
-  };
+  }, [todos, timeFilter]);
 
-  const generateReport = () => {
+  const generateReport = useCallback(() => {
     const filteredTodos = getFilteredTodos();
     
     const totalTodos = filteredTodos.length;
@@ -168,7 +161,13 @@ export default function ReportsView() {
       mostProductiveDay,
       mostProductiveHour
     });
-  };
+  }, [getFilteredTodos, timeFilter]);
+
+  useEffect(() => {
+    if (todos.length > 0) {
+      generateReport();
+    }
+  }, [todos, timeFilter, generateReport]);
 
   const exportReport = () => {
     if (!reportData) return;

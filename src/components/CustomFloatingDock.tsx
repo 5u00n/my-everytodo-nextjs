@@ -1,5 +1,4 @@
 import { cn } from "@/lib/utils";
-import { IconLayoutNavbarCollapse } from "@tabler/icons-react";
 import {
   AnimatePresence,
   MotionValue,
@@ -42,57 +41,36 @@ const CustomFloatingDockMobile = ({
   items: DockItem[];
   className?: string;
 }) => {
-  const [open, setOpen] = useState(false);
+
   return (
     <div className={cn("relative block md:hidden", className)}>
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            layoutId="nav"
-            className="absolute inset-x-0 bottom-full mb-2 flex flex-row gap-2 justify-center"
-          >
-            {items.map((item, idx) => (
-              <motion.div
-                key={item.title}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{
-                  opacity: 1,
-                  y: 0,
-                }}
-                exit={{
-                  opacity: 0,
-                  y: 10,
-                  transition: {
-                    delay: idx * 0.05,
-                  },
-                }}
-                transition={{ delay: idx * 0.05 }}
-              >
-                <button
-                  onClick={() => {
-                    item.onClick();
-                    setOpen(false);
-                  }}
-                  className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-full transition-colors",
-                    item.isActive 
-                      ? "bg-primary/10 text-primary" 
-                      : "bg-muted hover:bg-muted/80"
-                  )}
-                >
-                  <div className="h-4 w-4">{item.icon}</div>
-                </button>
-              </motion.div>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-      <button
-        onClick={() => setOpen(!open)}
-        className="flex h-10 w-10 items-center justify-center rounded-full bg-muted hover:bg-muted/80"
+      <motion.div
+        className="flex flex-row gap-2 justify-center items-center"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
       >
-        <IconLayoutNavbarCollapse className="h-5 w-5 text-muted-foreground" />
-      </button>
+        {items.map((item, idx) => (
+          <motion.div
+            key={item.title}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: idx * 0.1 }}
+          >
+            <button
+              onClick={item.onClick}
+              className={cn(
+                "flex h-12 w-12 items-center justify-center rounded-full transition-all duration-200",
+                item.isActive 
+                  ? "bg-primary text-primary-foreground shadow-lg scale-110" 
+                  : "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <div className="h-5 w-5">{item.icon}</div>
+            </button>
+          </motion.div>
+        ))}
+      </motion.div>
     </div>
   );
 };
@@ -104,7 +82,7 @@ const CustomFloatingDockDesktop = ({
   items: DockItem[];
   className?: string;
 }) => {
-  let mouseX = useMotionValue(Infinity);
+  const mouseX = useMotionValue(Infinity);
   return (
     <motion.div
       onMouseMove={(e) => mouseX.set(e.pageX)}
@@ -134,41 +112,41 @@ function CustomIconContainer({
   onClick: () => void;
   isActive?: boolean;
 }) {
-  let ref = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLDivElement>(null);
 
-  let distance = useTransform(mouseX, (val) => {
-    let bounds = ref.current?.getBoundingClientRect() ?? { x: 0, width: 0 };
+  const distance = useTransform(mouseX, (val) => {
+    const bounds = ref.current?.getBoundingClientRect() ?? { x: 0, width: 0 };
 
     return val - bounds.x - bounds.width / 2;
   });
 
-  let widthTransform = useTransform(distance, [-150, 0, 150], [40, 80, 40]);
-  let heightTransform = useTransform(distance, [-150, 0, 150], [40, 80, 40]);
+  const widthTransform = useTransform(distance, [-150, 0, 150], [40, 80, 40]);
+  const heightTransform = useTransform(distance, [-150, 0, 150], [40, 80, 40]);
 
-  let widthTransformIcon = useTransform(distance, [-150, 0, 150], [20, 40, 20]);
-  let heightTransformIcon = useTransform(
+  const widthTransformIcon = useTransform(distance, [-150, 0, 150], [20, 40, 20]);
+  const heightTransformIcon = useTransform(
     distance,
     [-150, 0, 150],
     [20, 40, 20],
   );
 
-  let width = useSpring(widthTransform, {
+  const width = useSpring(widthTransform, {
     mass: 0.1,
     stiffness: 150,
     damping: 12,
   });
-  let height = useSpring(heightTransform, {
+  const height = useSpring(heightTransform, {
     mass: 0.1,
     stiffness: 150,
     damping: 12,
   });
 
-  let widthIcon = useSpring(widthTransformIcon, {
+  const widthIcon = useSpring(widthTransformIcon, {
     mass: 0.1,
     stiffness: 150,
     damping: 12,
   });
-  let heightIcon = useSpring(heightTransformIcon, {
+  const heightIcon = useSpring(heightTransformIcon, {
     mass: 0.1,
     stiffness: 150,
     damping: 12,

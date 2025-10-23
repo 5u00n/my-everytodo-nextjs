@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotification } from '@/contexts/NotificationContext';
 import { database } from '@/lib/firebase';
 import { ref, push, set, onValue, off, update, remove } from 'firebase/database';
-import { Todo, Task, RepeatPattern, AlarmSettings } from '@/types';
+import { Todo } from '@/types';
+import TaskDetailModal from './TaskDetailModal';
+import TodoModal from './TodoModal';
 import { 
   Plus, 
   Clock, 
@@ -16,20 +18,17 @@ import {
   Vibrate, 
   Volume2, 
   VolumeX,
-  RotateCcw,
   Calendar,
-  Repeat,
   Trash2,
-  Edit3,
   X,
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
-import { format, addDays, isToday, isTomorrow, isPast } from 'date-fns';
+import { format, isToday, isTomorrow, isPast } from 'date-fns';
 
 export default function TodoList() {
   const { user } = useAuth();
-  const { requestPermission, showNotification, scheduleNotification, cancelNotification, permission } = useNotification();
+  const { requestPermission, scheduleNotification, cancelNotification, permission } = useNotification();
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -43,7 +42,8 @@ export default function TodoList() {
 
   useEffect(() => {
     if (!user || !database) {
-      setLoading(false);
+      // Use setTimeout to avoid synchronous setState in effect
+      setTimeout(() => setLoading(false), 0);
       return;
     }
 
@@ -91,37 +91,8 @@ export default function TodoList() {
     setShowTaskDetailModal(false);
   };
 
-  const scheduleNotificationsForTodos = (todosList: Todo[]) => {
-    // Clear existing timeouts
-    notificationTimeouts.forEach((timeoutId) => {
-      cancelNotification(timeoutId);
-    });
-    setNotificationTimeouts(new Map());
+  const getCurrentTimestamp = useCallback(() => Date.now(), []);
 
-    // Schedule new notifications
-    todosList.forEach(async todo => {
-      if (todo.alarmSettings.enabled && !todo.isCompleted) {
-        const timeoutId = await scheduleNotification(
-          todo.title,
-          todo.scheduledTime,
-          {
-            body: todo.description || 'Time to get things done!',
-            vibrate: todo.alarmSettings.vibrate ? [200, 100, 200] : undefined,
-            requireInteraction: true,
-            data: { todoId: todo.id, action: 'alarm' },
-            actions: [
-              { action: 'snooze', title: 'Snooze 1min', icon: '/icon-192.svg' },
-              { action: 'complete', title: 'Mark Done', icon: '/icon-192.svg' }
-            ]
-          }
-        );
-        
-        if (timeoutId) {
-          setNotificationTimeouts(prev => new Map(prev).set(todo.id, timeoutId));
-        }
-      }
-    });
-  };
 
   const createTodo = async (todoData: Omit<Todo, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => {
     if (!user || !database) return;
@@ -130,8 +101,8 @@ export default function TodoList() {
       ...todoData,
       id: '',
       userId: user.id,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      createdAt: getCurrentTimestamp(),
+      updatedAt: getCurrentTimestamp(),
       tasks: todoData.tasks || [],
     };
 
@@ -173,12 +144,13 @@ export default function TodoList() {
     );
 
     const allTasksCompleted = updatedTasks.every(task => task.isCompleted);
+    const now = getCurrentTimestamp();
     const updatedTodo = {
       ...todo,
       tasks: updatedTasks,
       isCompleted: allTasksCompleted,
-      updatedAt: Date.now(),
-      completedAt: allTasksCompleted ? Date.now() : undefined
+      updatedAt: now,
+      completedAt: allTasksCompleted ? now : undefined
     };
 
     const todoRef = ref(database, `todos/${user.id}/${todoId}`);
@@ -216,17 +188,25 @@ export default function TodoList() {
     await remove(todoRef);
   };
 
+  const updateTodo = async (todoId: string, updatedFields: Partial<Todo>) => {
+    if (!user || !database) return;
+
+    const todoRef = ref(database, `todos/${user.id}/${todoId}`);
+    await update(todoRef, { ...updatedFields, updatedAt: Date.now() });
+  };
+
   const toggleTodo = async (todoId: string) => {
     if (!user || !database) return;
 
     const todo = todos.find(t => t.id === todoId);
     if (!todo) return;
 
+    const now = getCurrentTimestamp();
     const updatedTodo = {
       ...todo,
       isCompleted: !todo.isCompleted,
-      updatedAt: Date.now(),
-      completedAt: !todo.isCompleted ? Date.now() : undefined
+      updatedAt: now,
+      completedAt: !todo.isCompleted ? now : undefined
     };
 
     const todoRef = ref(database, `todos/${user.id}/${todoId}`);
@@ -234,7 +214,6 @@ export default function TodoList() {
   };
 
   const getFilteredTodos = () => {
-    const now = new Date();
     switch (filter) {
       case 'today':
         return todos.filter(todo => isToday(new Date(todo.scheduledTime)));
@@ -247,19 +226,22 @@ export default function TodoList() {
     }
   };
 
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    scheduledTime: new Date().toISOString().slice(0, 16),
-    tasks: [{ id: Date.now().toString(), text: '', isCompleted: false, createdAt: Date.now() }],
-    repeatPattern: { type: 'none' as const, days: [], interval: 1 },
-    alarmSettings: {
-      enabled: true,
-      vibrate: true,
-      sound: true,
-      notification: true,
-      snoozeMinutes: 1
-    }
+  const [formData, setFormData] = useState(() => {
+    const now = getCurrentTimestamp();
+    return {
+      title: '',
+      description: '',
+      scheduledTime: new Date().toISOString().slice(0, 16),
+      tasks: [{ id: now.toString(), text: '', isCompleted: false, createdAt: now }],
+      repeatPattern: { type: 'none' as 'none' | 'daily' | 'weekly' | 'monthly', days: [], interval: 1 },
+      alarmSettings: {
+        enabled: true,
+        vibrate: true,
+        sound: true,
+        notification: true,
+        snoozeMinutes: 1
+      }
+    };
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -286,8 +268,8 @@ export default function TodoList() {
       title: '',
       description: '',
       scheduledTime: new Date().toISOString().slice(0, 16),
-      tasks: [{ id: Date.now().toString(), text: '', isCompleted: false, createdAt: Date.now() }],
-      repeatPattern: { type: 'none' as const, days: [], interval: 1 },
+      tasks: [{ id: getCurrentTimestamp().toString(), text: '', isCompleted: false, createdAt: getCurrentTimestamp() }],
+      repeatPattern: { type: 'none' as 'none' | 'daily' | 'weekly' | 'monthly', days: [], interval: 1 },
       alarmSettings: {
         enabled: true,
         vibrate: true,
@@ -303,7 +285,7 @@ export default function TodoList() {
   const addTask = () => {
     setFormData(prev => ({
       ...prev,
-      tasks: [...prev.tasks, { id: Date.now().toString(), text: '', isCompleted: false, createdAt: Date.now() }]
+      tasks: [...prev.tasks, { id: getCurrentTimestamp().toString(), text: '', isCompleted: false, createdAt: getCurrentTimestamp() }]
     }));
   };
 
@@ -358,7 +340,7 @@ export default function TodoList() {
           ].map(tab => (
             <button
               key={tab.key}
-              onClick={() => setFilter(tab.key as any)}
+              onClick={() => setFilter(tab.key as 'all' | 'today' | 'upcoming' | 'completed')}
               className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
                 filter === tab.key
                   ? 'bg-background text-primary shadow-sm'
@@ -440,7 +422,10 @@ export default function TodoList() {
                       {todo.tasks && todo.tasks.length > 0 && (
                         <div className="mt-3">
                           <button
-                            onClick={() => setExpandedTodo(expandedTodo === todo.id ? null : todo.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExpandedTodo(expandedTodo === todo.id ? null : todo.id);
+                            }}
                             className="flex items-center text-sm text-muted-foreground hover:text-foreground"
                           >
                             <span className="mr-1">
@@ -458,7 +443,10 @@ export default function TodoList() {
                               {todo.tasks.map((task) => (
                                 <div key={task.id} className="flex items-center">
                                   <button
-                                    onClick={() => toggleTask(todo.id, task.id)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleTask(todo.id, task.id);
+                                    }}
                                     className="mr-3 text-muted-foreground hover:text-foreground"
                                   >
                                     {task.isCompleted ? (
@@ -486,7 +474,7 @@ export default function TodoList() {
                               const updatedTodo = {
                                 ...todo,
                                 alarmSettings: { ...todo.alarmSettings, enabled: !todo.alarmSettings.enabled },
-                                updatedAt: Date.now()
+                                updatedAt: getCurrentTimestamp()
                               };
                               const todoRef = ref(database, `todos/${user.id}/${todo.id}`);
                               update(todoRef, updatedTodo);
@@ -523,7 +511,10 @@ export default function TodoList() {
 
                 <div className="flex items-center space-x-2 ml-4">
                   <button
-                    onClick={() => deleteTodo(todo.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteTodo(todo.id);
+                    }}
                     className="p-2 text-muted-foreground hover:text-destructive transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -634,7 +625,7 @@ export default function TodoList() {
                   value={formData.repeatPattern.type}
                   onChange={(e) => setFormData(prev => ({ 
                     ...prev, 
-                    repeatPattern: { ...prev.repeatPattern, type: e.target.value as any }
+                    repeatPattern: { ...prev.repeatPattern, type: e.target.value as 'none' | 'daily' | 'weekly' | 'monthly' }
                   }))}
                   className="w-full px-4 py-3 border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                 >
@@ -738,6 +729,37 @@ export default function TodoList() {
           </div>
         </div>
       )}
+
+      {/* Task Detail Modal */}
+      <TaskDetailModal
+        isOpen={showTaskDetailModal}
+        onClose={closeTaskDetail}
+        task={selectedTask}
+        onToggleTask={toggleTodo}
+        onToggleSubTask={toggleTask}
+        onEditTask={(task) => {
+          setEditingTodo(task);
+          setShowEditModal(true);
+          closeTaskDetail();
+        }}
+        onDeleteTask={deleteTodo}
+      />
+
+      {/* Edit Todo Modal */}
+      <TodoModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingTodo(null);
+        }}
+        onSubmit={(updatedFields) => {
+          if (editingTodo) {
+            updateTodo(editingTodo.id, updatedFields);
+          }
+        }}
+        title="Edit Todo"
+        initialData={editingTodo}
+      />
     </div>
   );
 }

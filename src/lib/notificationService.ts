@@ -30,7 +30,7 @@ class NotificationService {
       icon?: string;
       badge?: string;
       tag?: string;
-      data?: any;
+      data?: Record<string, unknown>;
       requireInteraction?: boolean;
       silent?: boolean;
       vibrate?: number[];
@@ -47,7 +47,7 @@ class NotificationService {
     }
 
     try {
-      const notificationOptions: any = {
+      const notificationOptions: NotificationOptions & { actions?: any[]; vibrate?: number[] } = {
         body: options.body,
         icon: options.icon || '/icon-192.svg',
         badge: options.badge || '/icon-192.svg',
@@ -75,8 +75,8 @@ class NotificationService {
         notification.close();
         
         // Handle different actions
-        if (options.data?.action) {
-          this.handleNotificationAction(options.data.action, options.data.todoId);
+        if (options.data?.action && typeof options.data.action === 'string') {
+          this.handleNotificationAction(options.data.action, options.data.todoId as string);
         }
       };
 
@@ -90,7 +90,7 @@ class NotificationService {
   private playNotificationSound() {
     try {
       // Create audio context for notification sound
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
       
       // Create a simple beep sound
       const oscillator = audioContext.createOscillator();
@@ -127,7 +127,7 @@ class NotificationService {
   async scheduleNotification(
     title: string,
     scheduledTime: number,
-    options: any = {}
+    options: Record<string, unknown> = {}
   ): Promise<number> {
     const now = Date.now();
     const delay = scheduledTime - now;

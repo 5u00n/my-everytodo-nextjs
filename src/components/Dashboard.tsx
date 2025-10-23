@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { database } from '@/lib/firebase';
-import { ref, onValue, off } from 'firebase/database';
+import { ref, onValue, off, update, remove } from 'firebase/database';
 import { Todo } from '@/types';
 import { 
   LogOut, 
@@ -19,7 +19,9 @@ import {
 } from 'lucide-react';
 import { CustomFloatingDock } from '@/components/CustomFloatingDock';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { format, isToday, isTomorrow, addDays, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
+import TaskDetailModal from './TaskDetailModal';
+import TodoModal from './TodoModal';
+import { format, isToday, isTomorrow, addDays, isWithinInterval } from 'date-fns';
 import TodoList from './TodoList';
 import CalendarView from './CalendarView';
 import ReportsView from './ReportsView';
@@ -31,10 +33,15 @@ export default function Dashboard() {
   const [currentView, setCurrentView] = useState<View>('home');
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showTaskDetailModal, setShowTaskDetailModal] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Todo | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
 
   useEffect(() => {
     if (!user || !database) {
-      setLoading(false);
+      // Use setTimeout to avoid synchronous setState in effect
+      setTimeout(() => setLoading(false), 0);
       return;
     }
 
@@ -59,6 +66,72 @@ export default function Dashboard() {
     return () => off(todosRef, 'value', unsubscribe);
   }, [user]);
 
+  const openTaskDetail = (todo: Todo) => {
+    setSelectedTask(todo);
+    setShowTaskDetailModal(true);
+  };
+
+  const closeTaskDetail = () => {
+    setSelectedTask(null);
+    setShowTaskDetailModal(false);
+  };
+
+  const toggleTodo = async (todoId: string) => {
+    if (!user || !database) return;
+
+    const todo = todos.find(t => t.id === todoId);
+    if (!todo) return;
+
+    const now = Date.now();
+    const updatedTodo = {
+      ...todo,
+      isCompleted: !todo.isCompleted,
+      updatedAt: now,
+      completedAt: !todo.isCompleted ? now : undefined
+    };
+
+    const todoRef = ref(database, `todos/${user.id}/${todoId}`);
+    await update(todoRef, updatedTodo);
+  };
+
+  const toggleTask = async (todoId: string, taskId: string) => {
+    if (!user || !database) return;
+
+    const todo = todos.find(t => t.id === todoId);
+    if (!todo || !todo.tasks) return;
+
+    const updatedTasks = todo.tasks.map(task =>
+      task.id === taskId ? { ...task, isCompleted: !task.isCompleted } : task
+    );
+
+    const allTasksCompleted = updatedTasks.every(task => task.isCompleted);
+    const now = Date.now();
+    const updatedTodo = {
+      ...todo,
+      tasks: updatedTasks,
+      isCompleted: allTasksCompleted,
+      updatedAt: now,
+      completedAt: allTasksCompleted ? now : undefined,
+    };
+
+    const todoRef = ref(database, `todos/${user.id}/${todoId}`);
+    await update(todoRef, updatedTodo);
+  };
+
+  const deleteTodo = async (todoId: string) => {
+    if (!user || !database) return;
+
+    const todoRef = ref(database, `todos/${user.id}/${todoId}`);
+    await remove(todoRef);
+  };
+
+  const updateTodo = async (todoId: string, updatedFields: Partial<Todo>) => {
+    if (!user || !database) return;
+
+    const todoRef = ref(database, `todos/${user.id}/${todoId}`);
+    await update(todoRef, { ...updatedFields, updatedAt: Date.now() });
+  };
+
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -68,7 +141,6 @@ export default function Dashboard() {
   };
 
   const getTodaysTodos = () => {
-    const today = new Date();
     return todos.filter(todo => {
       const todoDate = new Date(todo.scheduledTime);
       return isToday(todoDate) && !todo.isCompleted;
@@ -87,7 +159,6 @@ export default function Dashboard() {
   };
 
   const getCompletedToday = () => {
-    const today = new Date();
     return todos.filter(todo => {
       const todoDate = new Date(todo.scheduledTime);
       return isToday(todoDate) && todo.isCompleted;
@@ -103,13 +174,14 @@ export default function Dashboard() {
       case 'reports':
         return <ReportsView />;
       default:
-        return <HomeView 
-          onNavigate={setCurrentView} 
-          todaysTodos={getTodaysTodos()}
-          upcomingTodos={getUpcomingTodos()}
-          completedToday={getCompletedToday()}
-          totalTodos={todos.length}
-        />;
+                return <HomeView 
+                  onNavigate={setCurrentView} 
+                  todaysTodos={getTodaysTodos()}
+                  upcomingTodos={getUpcomingTodos()}
+                  completedToday={getCompletedToday()}
+                  totalTodos={todos.length}
+                  onTaskClick={openTaskDetail}
+                />;
     }
   };
 
@@ -180,10 +252,41 @@ export default function Dashboard() {
       <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50">
         <CustomFloatingDock 
           items={dockItems}
-          desktopClassName="bg-white/80 backdrop-blur-md border border-gray-200 shadow-lg"
-          mobileClassName="bg-white/90 backdrop-blur-md border border-gray-200 shadow-lg"
+          desktopClassName="bg-card/80 backdrop-blur-md border border-border shadow-lg"
+          mobileClassName="bg-card/90 backdrop-blur-md border border-border shadow-lg px-4 py-2"
         />
       </div>
+
+      {/* Task Detail Modal */}
+      <TaskDetailModal
+        isOpen={showTaskDetailModal}
+        onClose={closeTaskDetail}
+        task={selectedTask}
+        onToggleTask={toggleTodo}
+        onToggleSubTask={toggleTask}
+        onEditTask={(task) => {
+          setEditingTodo(task);
+          setShowEditModal(true);
+          closeTaskDetail();
+        }}
+        onDeleteTask={deleteTodo}
+      />
+
+      {/* Edit Todo Modal */}
+      <TodoModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingTodo(null);
+        }}
+        onSubmit={(updatedFields) => {
+          if (editingTodo) {
+            updateTodo(editingTodo.id, updatedFields);
+          }
+        }}
+        title="Edit Todo"
+        initialData={editingTodo}
+      />
     </div>
   );
 }
@@ -191,16 +294,18 @@ export default function Dashboard() {
 // Home View Component with Today's Focus
 function HomeView({ 
   onNavigate, 
-  todaysTodos, 
-  upcomingTodos, 
-  completedToday, 
-  totalTodos 
+  todaysTodos,
+  upcomingTodos,
+  completedToday,
+  totalTodos,
+  onTaskClick
 }: { 
-  onNavigate: (view: View) => void;
+  onNavigate: (view: View) => void; 
   todaysTodos: Todo[];
   upcomingTodos: Todo[];
   completedToday: number;
   totalTodos: number;
+  onTaskClick: (todo: Todo) => void;
 }) {
   const currentTime = new Date();
   const greeting = currentTime.getHours() < 12 ? 'Good Morning' : 
@@ -212,13 +317,13 @@ function HomeView({
       <div className="bg-gradient-to-br from-primary via-primary/90 to-accent text-primary-foreground px-4 py-8 md:py-12">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold mb-2">{greeting}</h2>
-          <p className="text-primary-foreground/80 text-lg mb-6">Let's make today productive!</p>
+          <p className="text-primary-foreground/80 text-lg mb-6">Let&apos;s make today productive!</p>
           
           {/* Quick Stats */}
           <div className="grid grid-cols-3 gap-4 mb-6">
             <div className="text-center">
               <div className="text-2xl font-bold">{todaysTodos.length}</div>
-              <div className="text-sm text-primary-foreground/80">Today's Tasks</div>
+              <div className="text-sm text-primary-foreground/80">Today&apos;s Tasks</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold">{completedToday}</div>
@@ -246,39 +351,45 @@ function HomeView({
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xl font-semibold text-foreground flex items-center">
               <Clock className="w-5 h-5 mr-2 text-primary" />
-              Today's Focus
+              Today&apos;s Focus
             </h3>
             <span className="text-sm text-muted-foreground">{format(new Date(), 'MMM d, yyyy')}</span>
           </div>
           
           {todaysTodos.length > 0 ? (
-            <div className="space-y-3">
-              {todaysTodos.slice(0, 3).map(todo => (
-                <div key={todo.id} className="macos-card p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-card-foreground mb-1">{todo.title}</h4>
-                      <div className="flex items-center text-sm text-muted-foreground mb-2">
-                        <Clock className="w-4 h-4 mr-1" />
-                        {format(new Date(todo.scheduledTime), 'h:mm a')}
-                      </div>
-                      {todo.tasks && todo.tasks.length > 0 && (
-                        <div className="text-sm text-muted-foreground">
-                          {todo.tasks.filter(task => !task.isCompleted).length} tasks remaining
+                    <div className="space-y-3">
+                      {todaysTodos.slice(0, 3).map(todo => (
+                        <div key={todo.id} className="macos-card p-4 cursor-pointer hover:bg-accent transition-colors" onClick={() => onTaskClick(todo)}>
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-card-foreground mb-1">{todo.title}</h4>
+                              <div className="flex items-center text-sm text-muted-foreground mb-2">
+                                <Clock className="w-4 h-4 mr-1" />
+                                {format(new Date(todo.scheduledTime), 'h:mm a')}
+                              </div>
+                              {todo.tasks && todo.tasks.length > 0 && (
+                                <div className="text-sm text-muted-foreground">
+                                  {todo.tasks.filter(task => !task.isCompleted).length} tasks remaining
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              {todo.alarmSettings.enabled && (
+                                <Bell className="w-4 h-4 text-primary" />
+                              )}
+                              <button 
+                                className="p-1 text-muted-foreground hover:text-foreground"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  // TODO: Implement toggle functionality
+                                }}
+                              >
+                                <Circle className="w-5 h-5" />
+                              </button>
+                            </div>
+                          </div>
                         </div>
-                      )}
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      {todo.alarmSettings.enabled && (
-                        <Bell className="w-4 h-4 text-primary" />
-                      )}
-                      <button className="p-1 text-muted-foreground hover:text-foreground">
-                        <Circle className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                      ))}
               {todaysTodos.length > 3 && (
                 <button 
                   onClick={() => onNavigate('todos')}
@@ -310,23 +421,23 @@ function HomeView({
               <Calendar className="w-5 h-5 mr-2 text-green-600" />
               Upcoming
             </h3>
-            <div className="space-y-3">
-              {upcomingTodos.slice(0, 2).map(todo => (
-                <div key={todo.id} className="macos-card p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-card-foreground mb-1">{todo.title}</h4>
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <Calendar className="w-4 h-4 mr-1" />
-                        {isTomorrow(new Date(todo.scheduledTime)) ? 'Tomorrow' : format(new Date(todo.scheduledTime), 'MMM d')} at {format(new Date(todo.scheduledTime), 'h:mm a')}
-                      </div>
-                    </div>
-                    {todo.alarmSettings.enabled && (
-                      <Bell className="w-4 h-4 text-primary" />
-                    )}
-                  </div>
-                </div>
-              ))}
+                    <div className="space-y-3">
+                      {upcomingTodos.slice(0, 2).map(todo => (
+                        <div key={todo.id} className="macos-card p-4 cursor-pointer hover:bg-accent transition-colors" onClick={() => onTaskClick(todo)}>
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-card-foreground mb-1">{todo.title}</h4>
+                              <div className="flex items-center text-sm text-muted-foreground">
+                                <Calendar className="w-4 h-4 mr-1" />
+                                {isTomorrow(new Date(todo.scheduledTime)) ? 'Tomorrow' : format(new Date(todo.scheduledTime), 'MMM d')} at {format(new Date(todo.scheduledTime), 'h:mm a')}
+                              </div>
+                            </div>
+                            {todo.alarmSettings.enabled && (
+                              <Bell className="w-4 h-4 text-primary" />
+                            )}
+                          </div>
+                        </div>
+                      ))}
             </div>
           </section>
         )}

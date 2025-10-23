@@ -3,8 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { database } from '@/lib/firebase';
-import { ref, onValue, off } from 'firebase/database';
+import { ref, onValue, off, update, remove } from 'firebase/database';
 import { Todo } from '@/types';
+import TaskDetailModal from './TaskDetailModal';
+import TodoModal from './TodoModal';
 import {
   format,
   startOfMonth,
@@ -16,18 +18,11 @@ import {
   startOfWeek,
   endOfWeek,
   addDays,
-  isToday,
-  isPast,
-  isBefore,
-  isAfter,
-  parseISO,
-  startOfDay,
-  endOfDay
+  isToday
 } from 'date-fns';
 import { 
   ChevronLeft, 
   ChevronRight, 
-  Clock, 
   Bell, 
   CheckCircle2, 
   Circle,
@@ -46,10 +41,15 @@ export default function CalendarView() {
   const [viewMode, setViewMode] = useState<ViewMode>('month');
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [showTaskDetailModal, setShowTaskDetailModal] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Todo | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
 
   useEffect(() => {
     if (!user || !database) {
-      setLoading(false);
+      // Use setTimeout to avoid synchronous setState in effect
+      setTimeout(() => setLoading(false), 0);
       return;
     }
 
@@ -71,6 +71,72 @@ export default function CalendarView() {
 
     return () => off(todosRef, 'value', unsubscribe);
   }, [user]);
+
+  const openTaskDetail = (todo: Todo) => {
+    setSelectedTask(todo);
+    setShowTaskDetailModal(true);
+  };
+
+  const closeTaskDetail = () => {
+    setSelectedTask(null);
+    setShowTaskDetailModal(false);
+  };
+
+  const toggleTodo = async (todoId: string) => {
+    if (!user || !database) return;
+
+    const todo = todos.find(t => t.id === todoId);
+    if (!todo) return;
+
+    const now = Date.now();
+    const updatedTodo = {
+      ...todo,
+      isCompleted: !todo.isCompleted,
+      updatedAt: now,
+      completedAt: !todo.isCompleted ? now : undefined
+    };
+
+    const todoRef = ref(database, `todos/${user.id}/${todoId}`);
+    await update(todoRef, updatedTodo);
+  };
+
+  const toggleTask = async (todoId: string, taskId: string) => {
+    if (!user || !database) return;
+
+    const todo = todos.find(t => t.id === todoId);
+    if (!todo || !todo.tasks) return;
+
+    const updatedTasks = todo.tasks.map(task =>
+      task.id === taskId ? { ...task, isCompleted: !task.isCompleted } : task
+    );
+
+    const allTasksCompleted = updatedTasks.every(task => task.isCompleted);
+    const now = Date.now();
+    const updatedTodo = {
+      ...todo,
+      tasks: updatedTasks,
+      isCompleted: allTasksCompleted,
+      updatedAt: now,
+      completedAt: allTasksCompleted ? now : undefined,
+    };
+
+    const todoRef = ref(database, `todos/${user.id}/${todoId}`);
+    await update(todoRef, updatedTodo);
+  };
+
+  const deleteTodo = async (todoId: string) => {
+    if (!user || !database) return;
+
+    const todoRef = ref(database, `todos/${user.id}/${todoId}`);
+    await remove(todoRef);
+  };
+
+  const updateTodo = async (todoId: string, updatedFields: Partial<Todo>) => {
+    if (!user || !database) return;
+
+    const todoRef = ref(database, `todos/${user.id}/${todoId}`);
+    await update(todoRef, { ...updatedFields, updatedAt: Date.now() });
+  };
 
   const handlePrev = () => {
     if (viewMode === 'month') {
@@ -148,7 +214,7 @@ export default function CalendarView() {
                 {/* Todo indicators */}
                 <div className="space-y-1 flex-1 overflow-hidden">
                   {dayTodos.slice(0, 2).map(todo => (
-                    <div key={todo.id} className="text-xs bg-primary/10 text-primary rounded px-1 py-0.5 truncate">
+                    <div key={todo.id} className="text-xs bg-primary/10 text-primary rounded px-1 py-0.5 truncate cursor-pointer hover:bg-primary/20" onClick={() => openTaskDetail(todo)}>
                       <Bell className="inline-block w-2 h-2 mr-1" /> 
                       {format(new Date(todo.scheduledTime), 'HH:mm')} {todo.title}
                     </div>
@@ -201,7 +267,7 @@ export default function CalendarView() {
               <div className="space-y-2">
                 {dayTodos.length > 0 ? (
                   dayTodos.map(todo => (
-                    <div key={todo.id} className="flex items-center text-sm">
+                    <div key={todo.id} className="flex items-center text-sm cursor-pointer hover:bg-muted/50 p-2 rounded" onClick={() => openTaskDetail(todo)}>
                       <Bell className="w-4 h-4 mr-2 text-primary" />
                       <span className="text-muted-foreground mr-2">
                         {format(new Date(todo.scheduledTime), 'HH:mm')}
@@ -240,7 +306,7 @@ export default function CalendarView() {
         <div className="space-y-4">
           {dayTodos.length > 0 ? (
             dayTodos.map(todo => (
-              <div key={todo.id} className="border-b border-border pb-4 last:border-b-0">
+              <div key={todo.id} className="border-b border-border pb-4 last:border-b-0 cursor-pointer hover:bg-muted/30 p-3 rounded" onClick={() => openTaskDetail(todo)}>
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center">
                     <Bell className="w-5 h-5 mr-3 text-primary" />
@@ -422,6 +488,37 @@ export default function CalendarView() {
           </div>
         </div>
       )}
+
+      {/* Task Detail Modal */}
+      <TaskDetailModal
+        isOpen={showTaskDetailModal}
+        onClose={closeTaskDetail}
+        task={selectedTask}
+        onToggleTask={toggleTodo}
+        onToggleSubTask={toggleTask}
+        onEditTask={(task) => {
+          setEditingTodo(task);
+          setShowEditModal(true);
+          closeTaskDetail();
+        }}
+        onDeleteTask={deleteTodo}
+      />
+
+      {/* Edit Todo Modal */}
+      <TodoModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingTodo(null);
+        }}
+        onSubmit={(updatedFields) => {
+          if (editingTodo) {
+            updateTodo(editingTodo.id, updatedFields);
+          }
+        }}
+        title="Edit Todo"
+        initialData={editingTodo}
+      />
     </div>
   );
 }

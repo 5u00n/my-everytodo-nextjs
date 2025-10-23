@@ -7,8 +7,8 @@ interface NotificationContextType {
   isSupported: boolean;
   permission: NotificationPermission;
   requestPermission: () => Promise<NotificationPermission>;
-  showNotification: (title: string, options?: any) => Promise<Notification | null>;
-  scheduleNotification: (title: string, scheduledTime: number, options?: any) => Promise<number>;
+  showNotification: (title: string, options?: Record<string, unknown>) => Promise<Notification | null>;
+  scheduleNotification: (title: string, scheduledTime: number, options?: Record<string, unknown>) => Promise<number>;
   cancelNotification: (timeoutId: number) => void;
 }
 
@@ -20,8 +20,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setIsSupported(notificationService.isNotificationSupported);
-      setPermission(notificationService.permissionStatus);
+      // Use setTimeout to avoid synchronous setState in effect
+      setTimeout(() => {
+        setIsSupported(notificationService.isNotificationSupported);
+        setPermission(notificationService.permissionStatus);
+      }, 0);
     }
   }, []);
 
@@ -32,11 +35,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     return newPermission;
   };
 
-  const showNotification = async (title: string, options?: any): Promise<Notification | null> => {
+  const showNotification = async (title: string, options?: Record<string, unknown>): Promise<Notification | null> => {
     return await notificationService.showNotification(title, options);
   };
 
-  const scheduleNotification = async (title: string, scheduledTime: number, options?: any): Promise<number> => {
+  const scheduleNotification = async (title: string, scheduledTime: number, options?: Record<string, unknown>): Promise<number> => {
     return await notificationService.scheduleNotification(title, scheduledTime, options);
   };
 
