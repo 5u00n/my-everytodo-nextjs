@@ -22,7 +22,7 @@ import { CustomFloatingDock } from '@/components/CustomFloatingDock';
 import { ThemeToggle } from '@/components/theme-toggle';
 import TaskDetailModal from './TaskDetailModal';
 import TodoModal from './TodoModal';
-import { format, isToday, isTomorrow, addDays, isWithinInterval } from 'date-fns';
+import { format, isToday, isTomorrow, addDays, isWithinInterval, isPast } from 'date-fns';
 import alarmManager from '@/lib/alarmManager';
 import pushNotificationService from '@/lib/pushNotificationService';
 import TodoList from './TodoList';
@@ -397,7 +397,9 @@ export default function Dashboard() {
   const getTodaysTodos = () => {
     return todos.filter(todo => {
       const todoDate = new Date(todo.scheduledTime);
-      return isToday(todoDate) && !todo.isCompleted;
+      const isTodayTodo = isToday(todoDate);
+      const isPastTodo = isPast(todoDate) && !isToday(todoDate);
+      return (isTodayTodo || (isPastTodo && !todo.isCompleted));
     }).sort((a, b) => new Date(a.scheduledTime).getTime() - new Date(b.scheduledTime).getTime());
   };
 
@@ -415,7 +417,9 @@ export default function Dashboard() {
   const getCompletedToday = () => {
     return todos.filter(todo => {
       const todoDate = new Date(todo.scheduledTime);
-      return isToday(todoDate) && todo.isCompleted;
+      const isTodayTodo = isToday(todoDate);
+      const isPastTodo = isPast(todoDate) && !isToday(todoDate);
+      return (isTodayTodo || isPastTodo) && todo.isCompleted;
     }).length;
   };
 

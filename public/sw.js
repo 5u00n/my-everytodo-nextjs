@@ -1,7 +1,7 @@
 // Service Worker with automatic updates and cache management
 // This will be generated with a unique version on each build
 
-const CACHE_VERSION = '1761244922893-631e20e'; // This will be replaced during build
+const CACHE_VERSION = '1761245871947-736ac21'; // This will be replaced during build
 const CACHE_NAME = `everytodo-v${CACHE_VERSION}`;
 const STATIC_CACHE_NAME = `everytodo-static-v${CACHE_VERSION}`;
 
@@ -67,18 +67,16 @@ self.addEventListener('activate', (event) => {
       self.clients.claim()
     ]).then(() => {
       console.log('Service Worker: Activation complete, claiming clients...');
-      // Only notify clients if this is a new version (not initial install)
-      if (self.registration.waiting) {
-        return self.clients.matchAll().then(clients => {
-          clients.forEach(client => {
-            client.postMessage({
-              type: 'SW_UPDATED',
-              version: CACHE_VERSION,
-              message: 'New version available!'
-            });
+      // Notify all clients about the update
+      return self.clients.matchAll().then(clients => {
+        clients.forEach(client => {
+          client.postMessage({
+            type: 'SW_UPDATED',
+            version: CACHE_VERSION,
+            message: 'New version available!'
           });
         });
-      }
+      });
     })
   );
 });

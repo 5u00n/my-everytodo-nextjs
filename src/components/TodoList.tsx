@@ -247,7 +247,13 @@ export default function TodoList() {
   const getFilteredTodos = () => {
     switch (filter) {
       case 'today':
-        return todos.filter(todo => isToday(new Date(todo.scheduledTime)));
+        // Show todos for today AND incomplete todos from previous days
+        return todos.filter(todo => {
+          const todoDate = new Date(todo.scheduledTime);
+          const isTodayTodo = isToday(todoDate);
+          const isPastTodo = isPast(todoDate) && !isToday(todoDate);
+          return (isTodayTodo || (isPastTodo && !todo.isCompleted));
+        });
       case 'upcoming':
         return todos.filter(todo => !isToday(new Date(todo.scheduledTime)) && !isPast(new Date(todo.scheduledTime)));
       case 'completed':
@@ -369,7 +375,12 @@ export default function TodoList() {
         <div className="flex space-x-1 bg-muted rounded-lg p-1">
           {[
             { key: 'all', label: 'All', count: todos.length },
-            { key: 'today', label: 'Today', count: todos.filter(t => isToday(new Date(t.scheduledTime))).length },
+            { key: 'today', label: 'Today', count: todos.filter(t => {
+              const todoDate = new Date(t.scheduledTime);
+              const isTodayTodo = isToday(todoDate);
+              const isPastTodo = isPast(todoDate) && !isToday(todoDate);
+              return (isTodayTodo || (isPastTodo && !t.isCompleted));
+            }).length },
             { key: 'upcoming', label: 'Upcoming', count: todos.filter(t => !isToday(new Date(t.scheduledTime)) && !isPast(new Date(t.scheduledTime))).length },
             { key: 'completed', label: 'Done', count: todos.filter(t => t.isCompleted).length }
           ].map(tab => (

@@ -77,6 +77,38 @@ export default function RootLayout({
             <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
             <meta httpEquiv="Pragma" content="no-cache" />
             <meta httpEquiv="Expires" content="0" />
+            <script
+              dangerouslySetInnerHTML={{
+                __html: `
+                  // Development cache clear function
+                  window.clearDevCache = function() {
+                    if ('caches' in window) {
+                      caches.keys().then(function(cacheNames) {
+                        return Promise.all(
+                          cacheNames.map(function(cacheName) {
+                            console.log('Manually deleting cache:', cacheName);
+                            return caches.delete(cacheName);
+                          })
+                        );
+                      }).then(function() {
+                        console.log('All caches cleared!');
+                        window.location.reload(true);
+                      });
+                    } else {
+                      window.location.reload(true);
+                    }
+                  };
+                  
+                  // Add keyboard shortcut Ctrl+Shift+C to clear cache
+                  document.addEventListener('keydown', function(e) {
+                    if (e.ctrlKey && e.shiftKey && e.key === 'C') {
+                      e.preventDefault();
+                      window.clearDevCache();
+                    }
+                  });
+                `,
+              }}
+            />
           </>
         )}
       </head>
@@ -170,12 +202,19 @@ export default function RootLayout({
                     });
                   }
                   
-                  // Add cache busting for development
-                  if (window.location.search.indexOf('v=') === -1) {
-                    const timestamp = Date.now();
-                    const url = new URL(window.location);
-                    url.searchParams.set('v', timestamp.toString());
-                    window.history.replaceState({}, '', url);
+                  // Add aggressive cache busting for development
+                  const timestamp = Date.now();
+                  const url = new URL(window.location);
+                  url.searchParams.set('v', timestamp.toString());
+                  url.searchParams.set('dev', 'true');
+                  url.searchParams.set('nocache', Math.random().toString(36).substring(7));
+                  window.history.replaceState({}, '', url);
+                  
+                  // Force reload with cache busting
+                  if (window.location.search.indexOf('force_reload') === -1) {
+                    const newUrl = new URL(window.location);
+                    newUrl.searchParams.set('force_reload', '1');
+                    window.location.href = newUrl.toString();
                   }
                 }
               }
