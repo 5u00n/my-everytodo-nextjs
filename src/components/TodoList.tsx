@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNotification } from '@/contexts/NotificationContext';
 import { database } from '@/lib/firebase';
 import { ref, push, set, onValue, off, update, remove } from 'firebase/database';
 import { Todo, Task, RepeatPattern, AlarmSettings } from '@/types';
@@ -28,11 +29,13 @@ import { format, addDays, isToday, isTomorrow, isPast } from 'date-fns';
 
 export default function TodoList() {
   const { user } = useAuth();
+  const { requestPermission, showNotification, scheduleNotification, cancelNotification, permission } = useNotification();
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [expandedTodo, setExpandedTodo] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'today' | 'upcoming' | 'completed'>('all');
+  const [notificationTimeouts, setNotificationTimeouts] = useState<Map<string, number>>(new Map());
 
   useEffect(() => {
     if (!user || !database) {
@@ -61,6 +64,51 @@ export default function TodoList() {
     return () => off(todosRef, 'value', unsubscribe);
   }, [user]);
 
+  // Request notification permission on component mount
+  useEffect(() => {
+    if (permission === 'default') {
+      requestPermission().then((newPermission) => {
+        if (newPermission === 'granted') {
+          console.log('Notification permission granted');
+        } else {
+          console.log('Notification permission denied');
+        }
+      });
+    }
+  }, [permission, requestPermission]);
+
+  const scheduleNotificationsForTodos = (todosList: Todo[]) => {
+    // Clear existing timeouts
+    notificationTimeouts.forEach((timeoutId) => {
+      cancelNotification(timeoutId);
+    });
+    setNotificationTimeouts(new Map());
+
+    // Schedule new notifications
+    todosList.forEach(async todo => {
+      if (todo.alarmSettings.enabled && !todo.isCompleted) {
+        const timeoutId = await scheduleNotification(
+          todo.title,
+          todo.scheduledTime,
+          {
+            body: todo.description || 'Time to get things done!',
+            vibrate: todo.alarmSettings.vibrate ? [200, 100, 200] : undefined,
+            requireInteraction: true,
+            data: { todoId: todo.id, action: 'alarm' },
+            actions: [
+              { action: 'snooze', title: 'Snooze 1min', icon: '/icon-192.svg' },
+              { action: 'complete', title: 'Mark Done', icon: '/icon-192.svg' }
+            ]
+          }
+        );
+        
+        if (timeoutId) {
+          setNotificationTimeouts(prev => new Map(prev).set(todo.id, timeoutId));
+        }
+      }
+    });
+  };
+
   const createTodo = async (todoData: Omit<Todo, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => {
     if (!user || !database) return;
 
@@ -76,6 +124,28 @@ export default function TodoList() {
     const todosRef = ref(database, `todos/${user.id}`);
     const newTodoRef = push(todosRef);
     await set(newTodoRef, { ...newTodo, id: newTodoRef.key });
+
+    // Schedule notification if alarm is enabled
+    if (newTodo.alarmSettings.enabled) {
+      const timeoutId = scheduleNotification(
+        newTodo.title,
+        newTodo.scheduledTime,
+        {
+          body: newTodo.description || 'Time to get things done!',
+          vibrate: newTodo.alarmSettings.vibrate ? [200, 100, 200] : undefined,
+          requireInteraction: true,
+          data: { todoId: newTodoRef.key, action: 'alarm' },
+          actions: [
+            { action: 'snooze', title: 'Snooze 1min', icon: '/icon-192.svg' },
+            { action: 'complete', title: 'Mark Done', icon: '/icon-192.svg' }
+          ]
+        }
+      );
+      
+      if (timeoutId) {
+        setNotificationTimeouts(prev => new Map(prev).set(newTodoRef.key!, timeoutId));
+      }
+    }
   };
 
   const toggleTask = async (todoId: string, taskId: string) => {
@@ -99,10 +169,34 @@ export default function TodoList() {
 
     const todoRef = ref(database, `todos/${user.id}/${todoId}`);
     await update(todoRef, updatedTodo);
+
+    // Cancel notification if all tasks are completed
+    if (allTasksCompleted) {
+      const timeoutId = notificationTimeouts.get(todoId);
+      if (timeoutId) {
+        cancelNotification(timeoutId);
+        setNotificationTimeouts(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(todoId);
+          return newMap;
+        });
+      }
+    }
   };
 
   const deleteTodo = async (todoId: string) => {
     if (!user || !database) return;
+
+    // Cancel notification if exists
+    const timeoutId = notificationTimeouts.get(todoId);
+    if (timeoutId) {
+      cancelNotification(timeoutId);
+      setNotificationTimeouts(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(todoId);
+        return newMap;
+      });
+    }
 
     const todoRef = ref(database, `todos/${user.id}/${todoId}`);
     await remove(todoRef);

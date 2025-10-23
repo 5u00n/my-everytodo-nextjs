@@ -65,6 +65,9 @@ class NotificationService {
 
       const notification = new Notification(title, notificationOptions);
 
+      // Play audio notification for PC
+      this.playNotificationSound();
+
       // Handle notification click
       notification.onclick = (event) => {
         event.preventDefault();
@@ -81,6 +84,32 @@ class NotificationService {
     } catch (error) {
       console.error('Error showing notification:', error);
       return null;
+    }
+  }
+
+  private playNotificationSound() {
+    try {
+      // Create audio context for notification sound
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      // Create a simple beep sound
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+      oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2);
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3);
+    } catch (error) {
+      console.log('Audio notification not supported:', error);
     }
   }
 
