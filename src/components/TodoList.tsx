@@ -33,6 +33,10 @@ export default function TodoList() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
+  const [showTaskDetailModal, setShowTaskDetailModal] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Todo | null>(null);
   const [expandedTodo, setExpandedTodo] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'today' | 'upcoming' | 'completed'>('all');
   const [notificationTimeouts, setNotificationTimeouts] = useState<Map<string, number>>(new Map());
@@ -76,6 +80,16 @@ export default function TodoList() {
       });
     }
   }, [permission, requestPermission]);
+
+  const openTaskDetail = (todo: Todo) => {
+    setSelectedTask(todo);
+    setShowTaskDetailModal(true);
+  };
+
+  const closeTaskDetail = () => {
+    setSelectedTask(null);
+    setShowTaskDetailModal(false);
+  };
 
   const scheduleNotificationsForTodos = (todosList: Todo[]) => {
     // Clear existing timeouts
@@ -127,7 +141,7 @@ export default function TodoList() {
 
     // Schedule notification if alarm is enabled
     if (newTodo.alarmSettings.enabled) {
-      const timeoutId = scheduleNotification(
+      const timeoutId = await scheduleNotification(
         newTodo.title,
         newTodo.scheduledTime,
         {
@@ -382,12 +396,15 @@ export default function TodoList() {
           </div>
         ) : (
           filteredTodos.map(todo => (
-            <div key={todo.id} className="macos-card p-4">
+            <div key={todo.id} className="macos-card p-4 cursor-pointer hover:bg-accent transition-colors" onClick={() => openTaskDetail(todo)}>
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start space-x-3">
                     <button
-                      onClick={() => toggleTodo(todo.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleTodo(todo.id);
+                      }}
                       className="flex-shrink-0 mt-1"
                     >
                       {todo.isCompleted ? (
