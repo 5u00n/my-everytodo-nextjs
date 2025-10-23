@@ -32,6 +32,7 @@ export default function AlarmPopup({
   const [alarmInterval, setAlarmInterval] = useState<NodeJS.Timeout | null>(null);
   const [remainingTime, setRemainingTime] = useState<number>(0);
   const [currentRepeat, setCurrentRepeat] = useState<number>(0);
+  const [activeOscillator, setActiveOscillator] = useState<OscillatorNode | null>(null);
 
   useEffect(() => {
     if (isVisible) {
@@ -106,11 +107,28 @@ export default function AlarmPopup({
       clearTimeout(alarmInterval);
       setAlarmInterval(null);
     }
+    stopAlarmSound();
     setIsPlaying(false);
+  };
+
+  // Stop the current alarm sound
+  const stopAlarmSound = () => {
+    if (activeOscillator) {
+      try {
+        activeOscillator.stop();
+        activeOscillator.disconnect();
+      } catch (error) {
+        // Oscillator might already be stopped
+      }
+      setActiveOscillator(null);
+    }
   };
 
   const playAlarmSound = async () => {
     if (isMuted) return;
+    
+    // Stop any existing alarm sound
+    stopAlarmSound();
     
     try {
       let context = audioContext;
@@ -133,28 +151,34 @@ export default function AlarmPopup({
       oscillator.connect(gainNode);
       gainNode.connect(context.destination);
       
-      // Create continuous alarm pattern for the full repeat duration
-      const baseFreq = 800;
-      const highFreq = 1000;
+      // Store oscillator for potential stopping
+      setActiveOscillator(oscillator);
       
-      // Create a pulsing pattern that repeats every 2 seconds
-      const patternDuration = 2; // 2-second pattern
-      const patterns = Math.ceil(repeatDurationSeconds / patternDuration);
+      // Create traditional alarm sound pattern (beep-beep-beep)
+      const beepDuration = 0.3; // 300ms beep
+      const pauseDuration = 0.2; // 200ms pause
+      const cycleDuration = beepDuration + pauseDuration; // 500ms total cycle
+      const cycles = Math.floor(repeatDurationSeconds / cycleDuration);
       
-      for (let i = 0; i < patterns; i++) {
-        const startTime = context.currentTime + (i * patternDuration);
+      // Traditional alarm frequencies (more pleasant)
+      const lowFreq = 440; // A4 note
+      const highFreq = 523; // C5 note
+      
+      for (let i = 0; i < cycles; i++) {
+        const cycleStart = context.currentTime + (i * cycleDuration);
         
-        // High-low-high pattern
-        oscillator.frequency.setValueAtTime(highFreq, startTime);
-        oscillator.frequency.setValueAtTime(baseFreq, startTime + 0.5);
-        oscillator.frequency.setValueAtTime(highFreq, startTime + 1);
-        oscillator.frequency.setValueAtTime(baseFreq, startTime + 1.5);
+        // First beep (low tone)
+        oscillator.frequency.setValueAtTime(lowFreq, cycleStart);
+        gainNode.gain.setValueAtTime(0.4, cycleStart);
+        gainNode.gain.setValueAtTime(0.4, cycleStart + beepDuration);
+        gainNode.gain.setValueAtTime(0.01, cycleStart + beepDuration + 0.01);
         
-        // Volume pulsing
-        gainNode.gain.setValueAtTime(0.7, startTime);
-        gainNode.gain.setValueAtTime(0.5, startTime + 0.5);
-        gainNode.gain.setValueAtTime(0.7, startTime + 1);
-        gainNode.gain.setValueAtTime(0.5, startTime + 1.5);
+        // Second beep (high tone) - start after pause
+        const secondBeepStart = cycleStart + beepDuration + pauseDuration;
+        oscillator.frequency.setValueAtTime(highFreq, secondBeepStart);
+        gainNode.gain.setValueAtTime(0.4, secondBeepStart);
+        gainNode.gain.setValueAtTime(0.4, secondBeepStart + beepDuration);
+        gainNode.gain.setValueAtTime(0.01, secondBeepStart + beepDuration + 0.01);
       }
       
       oscillator.start(context.currentTime);
@@ -163,15 +187,18 @@ export default function AlarmPopup({
       setIsPlaying(true);
       
       // Stop playing indicator after this repeat
-      setTimeout(() => setIsPlaying(false), repeatDurationMs);
+      setTimeout(() => {
+        setIsPlaying(false);
+        setActiveOscillator(null);
+      }, repeatDurationMs);
       
-      // Add continuous vibration pattern
+      // Add gentler vibration pattern
       if ('vibrate' in navigator) {
         const vibrationPattern = [];
-        const vibrationCycles = Math.ceil(repeatDurationSeconds / 2); // 2-second vibration cycles
+        const vibrationCycles = Math.ceil(repeatDurationSeconds / 1); // 1-second vibration cycles
         
         for (let i = 0; i < vibrationCycles; i++) {
-          vibrationPattern.push(200, 100, 200, 100, 200, 100, 200, 100);
+          vibrationPattern.push(150, 100, 150, 100, 150, 100); // Shorter, gentler pattern
         }
         
         navigator.vibrate(vibrationPattern);
@@ -182,6 +209,7 @@ export default function AlarmPopup({
   };
 
   const handleComplete = () => {
+    stopAlarmSequence(); // Stop alarm sound
     if (todoId && onComplete) {
       onComplete(todoId);
     }
@@ -189,6 +217,7 @@ export default function AlarmPopup({
   };
 
   const handleSnooze = (minutes: number) => {
+    stopAlarmSequence(); // Stop alarm sound
     if (todoId && onSnooze) {
       onSnooze(todoId, minutes);
     }
