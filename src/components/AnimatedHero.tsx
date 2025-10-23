@@ -46,44 +46,35 @@ export default function AnimatedHero({
 
   const timeOfDay = getTimeOfDay();
 
-  const getBackgroundStyle = () => {
+  const getBackgroundImage = () => {
     switch (timeOfDay) {
       case 'dawn':
-        return {
-          background: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%)',
-          animation: 'dawnGlow 8s ease-in-out infinite alternate'
-        };
+        return 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80';
       case 'morning':
-        return {
-          background: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
-          animation: 'morningRise 6s ease-in-out infinite alternate'
-        };
+        return 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80';
       case 'afternoon':
-        return {
-          background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
-          animation: 'afternoonFlow 7s ease-in-out infinite alternate'
-        };
+        return 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80';
       case 'evening':
-        return {
-          background: 'linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)',
-          animation: 'eveningGlow 9s ease-in-out infinite alternate'
-        };
+        return 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80';
       case 'dusk':
-        return {
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          animation: 'duskShift 10s ease-in-out infinite alternate'
-        };
+        return 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80';
       case 'night':
-        return {
-          background: 'linear-gradient(135deg, #2c3e50 0%, #3498db 100%)',
-          animation: 'nightPulse 12s ease-in-out infinite alternate'
-        };
+        return 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80';
       default:
-        return {
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          animation: 'defaultFlow 8s ease-in-out infinite alternate'
-        };
+        return 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80';
     }
+  };
+
+  const getBackgroundStyle = () => {
+    const backgroundImage = getBackgroundImage();
+    
+    return {
+      backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.4)), url('${backgroundImage}')`,
+      backgroundSize: '120% 120%',
+      backgroundPosition: 'center center',
+      backgroundRepeat: 'no-repeat',
+      animation: 'panZoom 20s ease-in-out infinite'
+    };
   };
 
   const getFloatingIcons = () => {
@@ -153,39 +144,32 @@ export default function AnimatedHero({
   return (
     <>
       <style jsx>{`
-        @keyframes dawnGlow {
-          0% { filter: hue-rotate(0deg) brightness(1); }
-          100% { filter: hue-rotate(10deg) brightness(1.1); }
-        }
-        
-        @keyframes morningRise {
-          0% { filter: brightness(1) saturate(1); }
-          100% { filter: brightness(1.2) saturate(1.3); }
-        }
-        
-        @keyframes afternoonFlow {
-          0% { filter: hue-rotate(0deg) saturate(1); }
-          100% { filter: hue-rotate(15deg) saturate(1.2); }
-        }
-        
-        @keyframes eveningGlow {
-          0% { filter: brightness(1) hue-rotate(0deg); }
-          100% { filter: brightness(1.1) hue-rotate(-10deg); }
-        }
-        
-        @keyframes duskShift {
-          0% { filter: hue-rotate(0deg) brightness(1); }
-          100% { filter: hue-rotate(20deg) brightness(0.9); }
-        }
-        
-        @keyframes nightPulse {
-          0% { filter: brightness(0.8) saturate(0.8); }
-          100% { filter: brightness(1.1) saturate(1.2); }
-        }
-        
-        @keyframes defaultFlow {
-          0% { filter: hue-rotate(0deg); }
-          100% { filter: hue-rotate(360deg); }
+        @keyframes panZoom {
+          0% { 
+            background-position: 0% 0%;
+            background-size: 120% 120%;
+            filter: brightness(1) contrast(1);
+          }
+          25% { 
+            background-position: 25% 25%;
+            background-size: 130% 130%;
+            filter: brightness(1.05) contrast(1.05);
+          }
+          50% { 
+            background-position: 50% 50%;
+            background-size: 140% 140%;
+            filter: brightness(1.1) contrast(1.1);
+          }
+          75% { 
+            background-position: 75% 25%;
+            background-size: 130% 130%;
+            filter: brightness(1.05) contrast(1.05);
+          }
+          100% { 
+            background-position: 100% 0%;
+            background-size: 120% 120%;
+            filter: brightness(1) contrast(1);
+          }
         }
         
         @keyframes float {
@@ -200,24 +184,12 @@ export default function AnimatedHero({
           50% { opacity: 1; transform: scale(1.2); }
         }
         
-        @keyframes drift {
-          0% { transform: translateX(0px) translateY(0px); }
-          25% { transform: translateX(10px) translateY(-5px); }
-          50% { transform: translateX(-5px) translateY(-10px); }
-          75% { transform: translateX(-10px) translateY(5px); }
-          100% { transform: translateX(0px) translateY(0px); }
-        }
-        
         .animate-float {
           animation: float 6s ease-in-out infinite;
         }
         
         .animate-sparkle {
           animation: sparkle 2s ease-in-out infinite;
-        }
-        
-        .animate-drift {
-          animation: drift 8s ease-in-out infinite;
         }
       `}</style>
       
@@ -247,30 +219,30 @@ export default function AnimatedHero({
         {/* Main Content */}
         <div className="relative z-10 max-w-4xl mx-auto">
           <div className="text-center mb-8">
-            <h2 className="text-3xl md:text-4xl font-bold mb-2 animate-drift">
+            <h2 className="text-3xl md:text-4xl font-bold mb-2">
               {greeting}
             </h2>
-            <p className="text-white/90 text-lg mb-6 animate-drift" style={{ animationDelay: '0.5s' }}>
+            <p className="text-white/90 text-lg mb-6">
               {motivationalMessage}
             </p>
           </div>
           
-          {/* Quick Stats with enhanced animations */}
+          {/* Quick Stats */}
           <div className="grid grid-cols-3 gap-4 mb-6">
             <div className="text-center transform hover:scale-105 transition-all duration-300">
-              <div className="text-2xl font-bold animate-drift" style={{ animationDelay: '1s' }}>
+              <div className="text-2xl font-bold">
                 {todaysTodos}
               </div>
               <div className="text-sm text-white/80">Today&apos;s Tasks</div>
             </div>
             <div className="text-center transform hover:scale-105 transition-all duration-300">
-              <div className="text-2xl font-bold animate-drift" style={{ animationDelay: '1.2s' }}>
+              <div className="text-2xl font-bold">
                 {completedToday}
               </div>
               <div className="text-sm text-white/80">Completed</div>
             </div>
             <div className="text-center transform hover:scale-105 transition-all duration-300">
-              <div className="text-2xl font-bold animate-drift" style={{ animationDelay: '1.4s' }}>
+              <div className="text-2xl font-bold">
                 {totalTodos}
               </div>
               <div className="text-sm text-white/80">Total Todos</div>
@@ -280,8 +252,7 @@ export default function AnimatedHero({
           <div className="text-center">
             <button 
               onClick={() => onNavigate('todos')}
-              className="mobile-button bg-white text-gray-800 hover:bg-white/90 focus-ring transform hover:scale-105 transition-all duration-300 shadow-lg animate-drift"
-              style={{ animationDelay: '1.6s' }}
+              className="mobile-button bg-white text-gray-800 hover:bg-white/90 focus-ring transform hover:scale-105 transition-all duration-300 shadow-lg"
             >
               <Plus className="w-5 h-5 mr-2 inline" />
               Add New Todo

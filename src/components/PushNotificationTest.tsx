@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Bell, BellOff, TestTube, CheckCircle, XCircle } from 'lucide-react';
+import { Bell, BellOff, TestTube, CheckCircle, XCircle, X } from 'lucide-react';
 import pushNotificationService from '@/lib/pushNotificationService';
 
 export default function PushNotificationTest() {
@@ -10,6 +10,7 @@ export default function PushNotificationTest() {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);
+  const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
     checkPushNotificationStatus();
@@ -76,14 +77,27 @@ export default function PushNotificationTest() {
     }
   };
 
+  if (!isVisible) {
+    return null;
+  }
+
   if (!isSupported) {
     return (
       <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-        <div className="flex items-center space-x-2">
-          <XCircle className="w-5 h-5 text-yellow-600" />
-          <span className="text-yellow-800 dark:text-yellow-200 font-medium">
-            Push notifications are not supported in this browser
-          </span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <XCircle className="w-5 h-5 text-yellow-600" />
+            <span className="text-yellow-800 dark:text-yellow-200 font-medium">
+              Push notifications are not supported in this browser
+            </span>
+          </div>
+          <button
+            onClick={() => setIsVisible(false)}
+            className="p-1 text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-200 transition-colors"
+            title="Close"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
       </div>
     );
@@ -91,11 +105,20 @@ export default function PushNotificationTest() {
 
   return (
     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-      <div className="flex items-center space-x-2 mb-4">
-        <Bell className="w-5 h-5 text-blue-600" />
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-          Push Notifications
-        </h3>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center space-x-2">
+          <Bell className="w-5 h-5 text-blue-600" />
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Push Notifications
+          </h3>
+        </div>
+        <button
+          onClick={() => setIsVisible(false)}
+          className="p-1 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
+          title="Close"
+        >
+          <X className="w-4 h-4" />
+        </button>
       </div>
 
       <div className="space-y-3">
