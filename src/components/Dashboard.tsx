@@ -257,11 +257,11 @@ export default function Dashboard() {
                   const isAndroid = /Android/.test(navigator.userAgent);
                   
                   if (isIOS) {
-                    alert('To install EveryTodo on iOS:\n\n1. Tap the Share button at the bottom\n2. Scroll down and tap "Add to Home Screen"\n3. Tap "Add" to confirm');
+                    alert('Install EveryTodo as an App on iOS:\n\n1. Tap the Share button at the bottom\n2. Scroll down and tap "Add to Home Screen"\n3. Tap "Add" to install as a native app\n\nThis will install EveryTodo as a proper app with its own icon!');
                   } else if (isAndroid) {
-                    alert('To install EveryTodo on Android:\n\n1. Tap the menu (three dots) in your browser\n2. Look for "Add to Home Screen" or "Install App"\n3. Tap it and follow the prompts');
+                    alert('Install EveryTodo as an App on Android:\n\n1. Tap the menu (three dots) in your browser\n2. Look for "Install app" or "Add to Home screen"\n3. Tap "Install" to install as a PWA app\n\nThis will install EveryTodo as a native app with its own icon!');
                   } else {
-                    alert('To install EveryTodo on your computer:\n\n1. Look for the install icon in your browser\'s address bar\n2. Click it and select "Install"\n\nOr use your browser\'s menu to find the install option.');
+                    alert('Install EveryTodo as an App on your computer:\n\n1. Look for the install icon in your browser\'s address bar\n2. Click it and select "Install" to install as a PWA app\n\nThis will install EveryTodo as a native desktop application!');
                   }
                 } else {
                   alert('Your browser doesn\'t support PWA installation. Please use a modern browser like Chrome, Edge, or Safari.');

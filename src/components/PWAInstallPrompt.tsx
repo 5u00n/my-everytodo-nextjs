@@ -109,39 +109,51 @@ export default function PWAInstallPrompt() {
   const getInstallInstructions = (device: string) => {
     switch (device) {
       case 'mobile':
-        return `To install EveryTodo on your mobile device:
+        return `Install EveryTodo as an App:
 
-1. Open your browser menu (three dots)
-2. Look for "Add to Home Screen" or "Install App"
-3. Tap it and follow the prompts
-4. The app will be added to your home screen
+For Android (Chrome/Edge):
+1. Tap the menu (three dots) in your browser
+2. Look for "Install app" or "Add to Home screen"
+3. Tap "Install" to install as a PWA app
 
-Alternatively, look for an install icon in your browser's address bar.`;
+For iPhone/iPad (Safari):
+1. Tap the Share button at the bottom
+2. Scroll down and tap "Add to Home Screen"
+3. Tap "Add" to install as an app
+
+The app will work like a native app with its own icon!`;
       
       case 'tablet':
-        return `To install EveryTodo on your tablet:
+        return `Install EveryTodo as an App:
 
-1. Open your browser menu (three dots)
-2. Look for "Add to Home Screen" or "Install App"
-3. Tap it and follow the prompts
-4. The app will be added to your home screen
+For Android (Chrome/Edge):
+1. Tap the menu (three dots) in your browser
+2. Look for "Install app" or "Add to Home screen"
+3. Tap "Install" to install as a PWA app
 
-Alternatively, look for an install icon in your browser's address bar.`;
+For iPad (Safari):
+1. Tap the Share button at the bottom
+2. Scroll down and tap "Add to Home Screen"
+3. Tap "Add" to install as an app
+
+The app will work like a native app with its own icon!`;
       
       default:
-        return `To install EveryTodo on your desktop:
+        return `Install EveryTodo as an App:
 
 Chrome/Edge:
 1. Look for the install icon in the address bar
-2. Click it and select "Install"
+2. Click it and select "Install" to install as a PWA app
 
 Firefox:
 1. Look for the install icon in the address bar
-2. Click it and select "Install"
+2. Click it and select "Install" to install as a PWA app
 
 Safari:
 1. Go to File > Add to Dock
-2. Or use the Share button and select "Add to Dock"`;
+2. Or use the Share button and select "Add to Dock"
+
+The app will work like a native desktop application!`;
     }
   };
 
@@ -172,10 +184,10 @@ Safari:
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="text-sm font-medium text-gray-900 dark:text-white">
-                Install EveryTodo
+                Install EveryTodo App
               </h3>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Get quick access to your todos and alarms by installing the app on your {deviceType}.
+                Install EveryTodo as a native app on your {deviceType} for the best experience with offline access and notifications.
               </p>
             </div>
           </div>
@@ -196,7 +208,7 @@ Safari:
             className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition-colors"
           >
             <Download className="w-4 h-4" />
-            <span>Install App</span>
+            <span>Install as App</span>
           </button>
           <button
             onClick={showManualInstallInstructions}
