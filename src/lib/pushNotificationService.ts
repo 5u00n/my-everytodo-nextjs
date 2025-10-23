@@ -5,8 +5,11 @@ class PushNotificationService {
   private registration: ServiceWorkerRegistration | null = null;
 
   constructor() {
-    // VAPID public key - in production, this should come from environment variables
-    this.vapidPublicKey = 'BEl62iUYgUivxIkv69yViEuiBIa40HI0FyHpQz4Sw7nQj8ryQPTQsKpL2zJmU3BjcHuW4hdBDiF6LfMFQ7XGp9dE';
+    // VAPID public key - try to get from environment variables first
+    this.vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 
+      'BH5WOQ_IyFvF-BG55vNI7qTWUluqkzidMXKVkqKgPIOFVjZM_vV1ZmkVU4cZaus0NKILg_kyMyOjKt3mqtI-JlA';
+    
+    console.log('PushNotificationService initialized with VAPID key:', this.vapidPublicKey.substring(0, 20) + '...');
   }
 
   // Initialize push notifications
@@ -53,6 +56,11 @@ class PushNotificationService {
   async subscribe(): Promise<PushSubscription | null> {
     if (!this.registration) {
       throw new Error('Push service not initialized');
+    }
+
+    // Validate VAPID key
+    if (!this.vapidPublicKey || this.vapidPublicKey.length < 80) {
+      throw new Error('Invalid VAPID public key. Please check your environment variables.');
     }
 
     try {

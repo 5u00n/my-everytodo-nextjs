@@ -34,6 +34,7 @@ import AlarmPopup from './AlarmPopup';
 import PushNotificationTest from './PushNotificationTest';
 import ProfileModal from './ProfileModal';
 import VersionDisplay from './VersionDisplay';
+import UserAvatar from './UserAvatar';
 
 type View = 'home' | 'todos' | 'calendar' | 'reports';
 
@@ -457,18 +458,15 @@ export default function Dashboard() {
             <VersionDisplay showDetails={false} />
           </div>
                   <div className="flex items-center space-x-3">
-                    <button
+                    <UserAvatar
+                      name={user?.displayName || 'User'}
+                      size="md"
                       onClick={() => setShowProfileModal(true)}
-                      className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden md:inline cursor-pointer"
-                    >
+                      className="hover:scale-105 transition-transform"
+                    />
+                    <span className="text-sm text-muted-foreground hidden md:inline">
                       Welcome, {user?.displayName}
-                    </button>
-                    <button
-                      onClick={() => setShowProfileModal(true)}
-                      className="text-sm text-muted-foreground hover:text-foreground transition-colors md:hidden cursor-pointer"
-                    >
-                      {user?.displayName}
-                    </button>
+                    </span>
             <button
               onClick={() => {
                 if ('serviceWorker' in navigator && 'PushManager' in window) {
