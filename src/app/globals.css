@@ -165,12 +165,12 @@
 
 /* Calendar maximization */
 .calendar-maximized {
-  height: calc(100vh - 120px); /* Account for header and dock */
+  height: calc(100vh - 160px); /* Account for header, dock, and navigation */
 }
 
 @media (min-width: 768px) {
   .calendar-maximized {
-    height: calc(100vh - 100px); /* Less space needed on desktop */
+    height: calc(100vh - 140px); /* Account for header, dock, and navigation on desktop */
   }
 }
 

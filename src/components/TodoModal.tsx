@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Todo, Task, RepeatPattern, AlarmSettings } from '@/types';
 import { 
   X, 
@@ -50,6 +50,33 @@ export default function TodoModal({ isOpen, onClose, onSubmit, title, initialDat
     }
   );
   const [newTaskText, setNewTaskText] = useState('');
+
+  // Update form data when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        title: initialData.title,
+        description: initialData.description || '',
+        tasks: initialData.tasks || [],
+        scheduledTime: initialData.scheduledTime,
+        repeatPattern: initialData.repeatPattern,
+        alarmSettings: initialData.alarmSettings,
+        isCompleted: initialData.isCompleted,
+        isActive: initialData.isActive,
+      });
+    } else {
+      setFormData({
+        title: '',
+        description: '',
+        tasks: [],
+        scheduledTime: Date.now() + 60 * 60 * 1000, // 1 hour from now
+        repeatPattern: { type: 'none' as 'none' | 'daily' | 'weekly' | 'monthly' },
+        alarmSettings: { enabled: true, vibrate: true, sound: true, notification: true, snoozeMinutes: 1 },
+        isCompleted: false,
+        isActive: true,
+      });
+    }
+  }, [initialData]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type, checked } = e.target as HTMLInputElement;

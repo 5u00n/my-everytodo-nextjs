@@ -15,7 +15,8 @@ import {
   Clock,
   Bell,
   CheckCircle2,
-  Circle
+  Circle,
+  Download
 } from 'lucide-react';
 import { CustomFloatingDock } from '@/components/CustomFloatingDock';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -25,6 +26,7 @@ import { format, isToday, isTomorrow, addDays, isWithinInterval } from 'date-fns
 import TodoList from './TodoList';
 import CalendarView from './CalendarView';
 import ReportsView from './ReportsView';
+import PWAInstallPrompt from './PWAInstallPrompt';
 
 type View = 'home' | 'todos' | 'calendar' | 'reports';
 
@@ -82,16 +84,30 @@ export default function Dashboard() {
     const todo = todos.find(t => t.id === todoId);
     if (!todo) return;
 
-    const now = Date.now();
-    const updatedTodo = {
-      ...todo,
+    // Check if todo is in the future
+    const now = new Date();
+    const todoDate = new Date(todo.scheduledTime);
+    if (todoDate > now) {
+      // Don't allow completing future todos
+      return;
+    }
+
+    const nowTimestamp = Date.now();
+    const updatedFields: Partial<Todo> = {
       isCompleted: !todo.isCompleted,
-      updatedAt: now,
-      completedAt: !todo.isCompleted ? now : undefined
+      updatedAt: nowTimestamp,
     };
 
+    // Only set completedAt if completing the todo, remove it if uncompleting
+    if (!todo.isCompleted) {
+      updatedFields.completedAt = nowTimestamp;
+    } else {
+      // When uncompleting, we need to remove the completedAt field
+      updatedFields.completedAt = undefined;
+    }
+
     const todoRef = ref(database, `todos/${user.id}/${todoId}`);
-    await update(todoRef, updatedTodo);
+    await update(todoRef, updatedFields);
   };
 
   const toggleTask = async (todoId: string, taskId: string) => {
@@ -232,6 +248,29 @@ export default function Dashboard() {
           <div className="flex items-center space-x-3">
             <span className="text-sm text-muted-foreground hidden md:inline">Welcome, {user?.displayName}</span>
             <span className="text-sm text-muted-foreground md:hidden">{user?.displayName}</span>
+            <button
+              onClick={() => {
+                if ('serviceWorker' in navigator && 'PushManager' in window) {
+                  // Show install instructions
+                  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                  const isAndroid = /Android/.test(navigator.userAgent);
+                  
+                  if (isIOS) {
+                    alert('To install EveryTodo on iOS:\n\n1. Tap the Share button at the bottom\n2. Scroll down and tap "Add to Home Screen"\n3. Tap "Add" to confirm');
+                  } else if (isAndroid) {
+                    alert('To install EveryTodo on Android:\n\n1. Tap the menu (three dots) in your browser\n2. Look for "Add to Home Screen" or "Install App"\n3. Tap it and follow the prompts');
+                  } else {
+                    alert('To install EveryTodo on your computer:\n\n1. Look for the install icon in your browser\'s address bar\n2. Click it and select "Install"\n\nOr use your browser\'s menu to find the install option.');
+                  }
+                } else {
+                  alert('Your browser doesn\'t support PWA installation. Please use a modern browser like Chrome, Edge, or Safari.');
+                }
+              }}
+              className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+              title="Install App"
+            >
+              <Download className="w-5 h-5" />
+            </button>
             <ThemeToggle />
             <button
               onClick={handleSignOut}
@@ -466,6 +505,9 @@ function HomeView({
           </div>
         </section>
       </div>
+      
+      {/* PWA Install Prompt */}
+      <PWAInstallPrompt />
     </div>
   );
 }

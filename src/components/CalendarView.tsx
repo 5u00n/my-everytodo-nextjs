@@ -88,16 +88,30 @@ export default function CalendarView() {
     const todo = todos.find(t => t.id === todoId);
     if (!todo) return;
 
-    const now = Date.now();
-    const updatedTodo = {
-      ...todo,
+    // Check if todo is in the future
+    const now = new Date();
+    const todoDate = new Date(todo.scheduledTime);
+    if (todoDate > now) {
+      // Don't allow completing future todos
+      return;
+    }
+
+    const nowTimestamp = Date.now();
+    const updatedFields: Partial<Todo> = {
       isCompleted: !todo.isCompleted,
-      updatedAt: now,
-      completedAt: !todo.isCompleted ? now : undefined
+      updatedAt: nowTimestamp,
     };
 
+    // Only set completedAt if completing the todo, remove it if uncompleting
+    if (!todo.isCompleted) {
+      updatedFields.completedAt = nowTimestamp;
+    } else {
+      // When uncompleting, we need to remove the completedAt field
+      updatedFields.completedAt = undefined;
+    }
+
     const todoRef = ref(database, `todos/${user.id}/${todoId}`);
-    await update(todoRef, updatedTodo);
+    await update(todoRef, updatedFields);
   };
 
   const toggleTask = async (todoId: string, taskId: string) => {

@@ -201,16 +201,30 @@ export default function TodoList() {
     const todo = todos.find(t => t.id === todoId);
     if (!todo) return;
 
-    const now = getCurrentTimestamp();
-    const updatedTodo = {
-      ...todo,
+    // Check if todo is in the future
+    const now = new Date();
+    const todoDate = new Date(todo.scheduledTime);
+    if (todoDate > now) {
+      // Don't allow completing future todos
+      return;
+    }
+
+    const nowTimestamp = getCurrentTimestamp();
+    const updatedFields: Partial<Todo> = {
       isCompleted: !todo.isCompleted,
-      updatedAt: now,
-      completedAt: !todo.isCompleted ? now : undefined
+      updatedAt: nowTimestamp,
     };
 
+    // Only set completedAt if completing the todo, remove it if uncompleting
+    if (!todo.isCompleted) {
+      updatedFields.completedAt = nowTimestamp;
+    } else {
+      // When uncompleting, we need to remove the completedAt field
+      updatedFields.completedAt = undefined;
+    }
+
     const todoRef = ref(database, `todos/${user.id}/${todoId}`);
-    await update(todoRef, updatedTodo);
+    await update(todoRef, updatedFields);
   };
 
   const getFilteredTodos = () => {
@@ -385,14 +399,27 @@ export default function TodoList() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        toggleTodo(todo.id);
+                        const now = new Date();
+                        const todoDate = new Date(todo.scheduledTime);
+                        if (todoDate <= now) {
+                          toggleTodo(todo.id);
+                        }
                       }}
-                      className="flex-shrink-0 mt-1"
+                      className={`flex-shrink-0 mt-1 ${
+                        new Date(todo.scheduledTime) > new Date() 
+                          ? 'opacity-50 cursor-not-allowed' 
+                          : 'cursor-pointer'
+                      }`}
+                      disabled={new Date(todo.scheduledTime) > new Date()}
                     >
                       {todo.isCompleted ? (
                         <CheckCircle2 className="w-6 h-6 text-green-500" />
                       ) : (
-                        <Circle className="w-6 h-6 text-muted-foreground" />
+                        <Circle className={`w-6 h-6 ${
+                          new Date(todo.scheduledTime) > new Date() 
+                            ? 'text-muted-foreground/50' 
+                            : 'text-muted-foreground'
+                        }`} />
                       )}
                     </button>
                     
@@ -415,6 +442,9 @@ export default function TodoList() {
                         )}
                         {isTomorrow(new Date(todo.scheduledTime)) && (
                           <span className="ml-2 px-2 py-1 bg-primary/10 text-primary rounded-full text-xs">Tomorrow</span>
+                        )}
+                        {new Date(todo.scheduledTime) > new Date() && !isToday(new Date(todo.scheduledTime)) && !isTomorrow(new Date(todo.scheduledTime)) && (
+                          <span className="ml-2 px-2 py-1 bg-orange-100 text-orange-600 rounded-full text-xs">Future</span>
                         )}
                       </div>
 

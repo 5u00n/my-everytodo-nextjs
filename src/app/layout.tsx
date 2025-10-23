@@ -33,6 +33,14 @@ export const metadata: Metadata = {
       { url: "/icon-192.svg", sizes: "192x192", type: "image/svg+xml" },
     ],
   },
+  other: {
+    "mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-status-bar-style": "default",
+    "apple-mobile-web-app-title": "EveryTodo",
+    "msapplication-TileColor": "#3b82f6",
+    "msapplication-config": "/browserconfig.xml",
+  },
 };
 
 export const viewport = {
@@ -54,6 +62,16 @@ export default function RootLayout({
       <head>
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icon-192.svg" />
+        <meta name="application-name" content="EveryTodo" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="EveryTodo" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="msapplication-config" content="/browserconfig.xml" />
+        <meta name="msapplication-TileColor" content="#3b82f6" />
+        <meta name="msapplication-tap-highlight" content="no" />
+        <meta name="theme-color" content="#3b82f6" />
       </head>
               <body
                 className={`${geistSans.variable} ${geistMono.variable} antialiased`}
