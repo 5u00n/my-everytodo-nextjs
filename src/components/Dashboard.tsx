@@ -59,8 +59,36 @@ export default function Dashboard() {
   } | null>(null);
   const [showAlarmPopup, setShowAlarmPopup] = useState(false);
   
+  // PWA detection state
+  const [isPWAInstalled, setIsPWAInstalled] = useState(false);
+  
   // Profile modal state
   const [showProfileModal, setShowProfileModal] = useState(false);
+
+  // Detect if app is running as PWA
+  useEffect(() => {
+    const checkPWAInstallation = () => {
+      // Check if running in standalone mode (PWA)
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+      // Check if running in fullscreen mode (PWA on some devices)
+      const isFullscreen = window.matchMedia('(display-mode: fullscreen)').matches;
+      // Check if running in minimal-ui mode (PWA on some devices)
+      const isMinimalUI = window.matchMedia('(display-mode: minimal-ui)').matches;
+      
+      const isPWA = isStandalone || isFullscreen || isMinimalUI;
+      setIsPWAInstalled(isPWA);
+    };
+
+    checkPWAInstallation();
+    
+    // Listen for display mode changes
+    const mediaQuery = window.matchMedia('(display-mode: standalone)');
+    mediaQuery.addEventListener('change', checkPWAInstallation);
+    
+    return () => {
+      mediaQuery.removeEventListener('change', checkPWAInstallation);
+    };
+  }, []);
 
   useEffect(() => {
     if (!user || !database) {
@@ -467,29 +495,31 @@ export default function Dashboard() {
                     <span className="text-sm text-muted-foreground hidden md:inline">
                       Welcome, {user?.displayName}
                     </span>
-            <button
-              onClick={() => {
-                if ('serviceWorker' in navigator && 'PushManager' in window) {
-                  // Show install instructions
-                  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-                  const isAndroid = /Android/.test(navigator.userAgent);
-                  
-                  if (isIOS) {
-                    alert('Install EveryTodo as an App on iOS:\n\n1. Tap the Share button at the bottom\n2. Scroll down and tap "Add to Home Screen"\n3. Tap "Add" to install as a native app\n\nThis will install EveryTodo as a proper app with its own icon!');
-                  } else if (isAndroid) {
-                    alert('Install EveryTodo as an App on Android:\n\n1. Tap the menu (three dots) in your browser\n2. Look for "Install app" or "Add to Home screen"\n3. Tap it to install as a PWA app\n\nNote: Even though it says "Add to Home screen", it installs as a full native app with its own icon!');
+            {!isPWAInstalled && (
+              <button
+                onClick={() => {
+                  if ('serviceWorker' in navigator && 'PushManager' in window) {
+                    // Show install instructions
+                    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                    const isAndroid = /Android/.test(navigator.userAgent);
+                    
+                    if (isIOS) {
+                      alert('Install EveryTodo as an App on iOS:\n\n1. Tap the Share button at the bottom\n2. Scroll down and tap "Add to Home Screen"\n3. Tap "Add" to install as a native app\n\nThis will install EveryTodo as a proper app with its own icon!');
+                    } else if (isAndroid) {
+                      alert('Install EveryTodo as an App on Android:\n\n1. Tap the menu (three dots) in your browser\n2. Look for "Install app" or "Add to Home screen"\n3. Tap it to install as a PWA app\n\nNote: Even though it says "Add to Home screen", it installs as a full native app with its own icon!');
+                    } else {
+                      alert('Install EveryTodo as an App on your computer:\n\n1. Look for the install icon in your browser\'s address bar\n2. Click it and select "Install" to install as a PWA app\n\nThis will install EveryTodo as a native desktop application!');
+                    }
                   } else {
-                    alert('Install EveryTodo as an App on your computer:\n\n1. Look for the install icon in your browser\'s address bar\n2. Click it and select "Install" to install as a PWA app\n\nThis will install EveryTodo as a native desktop application!');
+                    alert('Your browser doesn\'t support PWA installation. Please use a modern browser like Chrome, Edge, or Safari.');
                   }
-                } else {
-                  alert('Your browser doesn\'t support PWA installation. Please use a modern browser like Chrome, Edge, or Safari.');
-                }
-              }}
-              className="p-2 text-muted-foreground hover:text-foreground transition-colors"
-              title="Install App"
-            >
-              <Download className="w-5 h-5" />
-            </button>
+                }}
+                className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+                title="Install App"
+              >
+                <Download className="w-5 h-5" />
+              </button>
+            )}
             <ThemeToggle />
             <button
               onClick={handleSignOut}
@@ -586,9 +616,287 @@ function HomeView({
   totalTodos: number;
   onTaskClick: (todo: Todo) => void;
 }) {
-  const currentTime = new Date();
-  const greeting = currentTime.getHours() < 12 ? 'Good Morning' : 
-                   currentTime.getHours() < 18 ? 'Good Afternoon' : 'Good Evening';
+  const [currentTime, setCurrentTime] = useState(new Date());
+  
+  // Update time every minute to keep greeting current
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+    
+    return () => clearInterval(timer);
+  }, []);
+  
+  const getGreeting = () => {
+    const hour = currentTime.getHours();
+    const dayOfWeek = currentTime.getDay(); // 0 = Sunday, 6 = Saturday
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    
+    // Early Morning greetings (4 AM - 7:59 AM)
+    if (hour >= 4 && hour < 8) {
+      const earlyMorningGreetings = [
+        '🌅 Early Bird',
+        '🌄 Dawn Breaker',
+        '☀️ First Light',
+        '🚀 Early Start',
+        '✨ Pre-Dawn Energy',
+        '🌟 Morning Warrior',
+        '💪 Early Riser',
+        '🎯 Beat the Sun',
+        '⭐ Dawn Patrol',
+        '🏆 Early Champion'
+      ];
+      return earlyMorningGreetings[Math.floor(Math.random() * earlyMorningGreetings.length)];
+    }
+    
+    // Morning greetings (8 AM - 10:59 AM)
+    else if (hour >= 8 && hour < 11) {
+      const morningGreetings = [
+        '🌅 Good Morning',
+        '☀️ Rise and Shine',
+        '🌞 Morning Sunshine',
+        '🚀 Start Your Day Right',
+        '✨ Fresh Start',
+        '🌟 New Day, New Possibilities',
+        '💪 Ready to Conquer Today?',
+        '🎯 Let\'s Make Today Amazing',
+        '⭐ Time to Shine',
+        '🏆 Good Morning, Champion'
+      ];
+      return morningGreetings[Math.floor(Math.random() * morningGreetings.length)];
+    }
+    
+    // Late Morning greetings (11 AM - 12:59 PM)
+    else if (hour >= 11 && hour < 13) {
+      const lateMorningGreetings = [
+        '🌤️ Late Morning',
+        '☀️ Almost Noon',
+        '🚀 Mid-Morning Push',
+        '💪 Morning Momentum',
+        '🎯 Pre-Lunch Focus',
+        '⚡ Late Morning Energy',
+        '🔥 Morning Flow',
+        '📈 Building Momentum',
+        '🌟 Morning Glow',
+        '💎 Morning Excellence'
+      ];
+      return lateMorningGreetings[Math.floor(Math.random() * lateMorningGreetings.length)];
+    }
+    
+    // Afternoon greetings (1 PM - 3:59 PM)
+    else if (hour >= 13 && hour < 16) {
+      const afternoonGreetings = [
+        '☀️ Good Afternoon',
+        '😊 Hope Your Day is Going Well',
+        '⚡ Afternoon Productivity',
+        '🔥 Keep the Momentum Going',
+        '💪 You\'re Doing Great',
+        '🎯 Stay Focused',
+        '🚀 Power Through the Afternoon',
+        '📈 Making Progress?',
+        '⚡ Afternoon Energy',
+        '💥 Keep Crushing It'
+      ];
+      return afternoonGreetings[Math.floor(Math.random() * afternoonGreetings.length)];
+    }
+    
+    // Late Afternoon greetings (4 PM - 5:59 PM)
+    else if (hour >= 16 && hour < 18) {
+      const lateAfternoonGreetings = [
+        '🌤️ Late Afternoon',
+        '☀️ Almost Evening',
+        '🚀 Afternoon Sprint',
+        '💪 Power Hour',
+        '🎯 Late Day Focus',
+        '⚡ Afternoon Surge',
+        '🔥 End of Day Push',
+        '📈 Afternoon Peak',
+        '🌟 Golden Hour',
+        '💎 Afternoon Excellence'
+      ];
+      return lateAfternoonGreetings[Math.floor(Math.random() * lateAfternoonGreetings.length)];
+    }
+    
+    // Evening greetings (6 PM - 8:59 PM)
+    else if (hour >= 18 && hour < 21) {
+      const eveningGreetings = [
+        '🌆 Good Evening',
+        '🌅 Wind Down Time',
+        '🤔 Evening Reflection',
+        '🏁 Almost There',
+        '💪 Finish Strong',
+        '⚡ Evening Productivity',
+        '📋 Wrap Up the Day',
+        '🎯 Evening Focus',
+        '🔥 Last Push',
+        '💪 You\'ve Got This'
+      ];
+      return eveningGreetings[Math.floor(Math.random() * eveningGreetings.length)];
+    }
+    
+    // Late Evening greetings (9 PM - 11:59 PM)
+    else if (hour >= 21 && hour < 24) {
+      const lateEveningGreetings = [
+        '🌙 Late Evening',
+        '🌃 Evening Wind Down',
+        '🦉 Night Owl Mode',
+        '🌆 Evening Reflection',
+        '💪 Evening Focus',
+        '🎯 Night Productivity',
+        '🔥 Evening Energy',
+        '📋 Evening Wrap Up',
+        '🌟 Evening Glow',
+        '💎 Evening Excellence'
+      ];
+      return lateEveningGreetings[Math.floor(Math.random() * lateEveningGreetings.length)];
+    }
+    
+    // Night greetings (12 AM - 3:59 AM)
+    else {
+      const nightGreetings = [
+        '🌙 Good Night',
+        '😴 Time to Rest',
+        '🦉 Night Owl Mode',
+        '🌃 Late Night Productivity',
+        '🕯️ Burning the Midnight Oil',
+        '🎯 Night Focus',
+        '🤫 Quiet Hours',
+        '🧠 Deep Work Time',
+        '🌙 Night Session',
+        '💪 Still Going Strong?'
+      ];
+      return nightGreetings[Math.floor(Math.random() * nightGreetings.length)];
+    }
+  };
+  
+  const getMotivationalMessage = () => {
+    const hour = currentTime.getHours();
+    const dayOfWeek = currentTime.getDay();
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    
+    // Early Morning motivation (4 AM - 7:59 AM)
+    if (hour >= 4 && hour < 8) {
+      const earlyMorningMessages = [
+        "🌅 Early bird gets the worm!",
+        "🌄 Beat the sunrise to success",
+        "☀️ First light, first opportunity",
+        "🚀 Early start, big results",
+        "✨ Pre-dawn productivity",
+        "🌟 Morning warrior mode",
+        "💪 Early riser advantage",
+        "🎯 Dawn of achievement"
+      ];
+      return earlyMorningMessages[Math.floor(Math.random() * earlyMorningMessages.length)];
+    }
+    
+    // Morning motivation (8 AM - 10:59 AM)
+    else if (hour >= 8 && hour < 11) {
+      const morningMessages = [
+        "🚀 Let's make today productive!",
+        "📋 Every great day starts with a plan",
+        "🙏 Your future self will thank you",
+        "👣 Small steps lead to big achievements",
+        "✨ Today is full of possibilities",
+        "💪 Start strong, finish stronger",
+        "🎯 Make today count!",
+        "🏆 Your goals are waiting"
+      ];
+      return morningMessages[Math.floor(Math.random() * morningMessages.length)];
+    }
+    
+    // Late Morning motivation (11 AM - 12:59 PM)
+    else if (hour >= 11 && hour < 13) {
+      const lateMorningMessages = [
+        "🌤️ Mid-morning momentum!",
+        "☀️ Almost noon, keep going!",
+        "🚀 Pre-lunch productivity",
+        "💪 Morning flow continues",
+        "🎯 Late morning focus",
+        "⚡ Building morning energy",
+        "🔥 Morning momentum building",
+        "📈 Pre-noon progress"
+      ];
+      return lateMorningMessages[Math.floor(Math.random() * lateMorningMessages.length)];
+    }
+    
+    // Afternoon motivation (1 PM - 3:59 PM)
+    else if (hour >= 13 && hour < 16) {
+      const afternoonMessages = [
+        "🔥 Keep the momentum going!",
+        "🏁 You're halfway there",
+        "🎯 Stay focused and productive",
+        "📈 Every task completed is progress",
+        "💪 Push through the afternoon",
+        "⭐ Your dedication shows",
+        "👏 Keep up the great work",
+        "🔍 Success is in the details"
+      ];
+      return afternoonMessages[Math.floor(Math.random() * afternoonMessages.length)];
+    }
+    
+    // Late Afternoon motivation (4 PM - 5:59 PM)
+    else if (hour >= 16 && hour < 18) {
+      const lateAfternoonMessages = [
+        "🌤️ Late afternoon push!",
+        "☀️ Almost evening, finish strong!",
+        "🚀 Afternoon sprint time",
+        "💪 Power hour activated",
+        "🎯 Late day focus",
+        "⚡ Afternoon surge energy",
+        "🔥 End of day push",
+        "📈 Afternoon peak performance"
+      ];
+      return lateAfternoonMessages[Math.floor(Math.random() * lateAfternoonMessages.length)];
+    }
+    
+    // Evening motivation (6 PM - 8:59 PM)
+    else if (hour >= 18 && hour < 21) {
+      const eveningMessages = [
+        "💪 Finish the day strong!",
+        "🏁 Almost at the finish line",
+        "⚡ Evening productivity mode",
+        "🎯 Wrap up with purpose",
+        "🌟 End on a high note",
+        "💎 Your hard work pays off",
+        "🔥 One more push",
+        "🎯 Evening focus time"
+      ];
+      return eveningMessages[Math.floor(Math.random() * eveningMessages.length)];
+    }
+    
+    // Late Evening motivation (9 PM - 11:59 PM)
+    else if (hour >= 21 && hour < 24) {
+      const lateEveningMessages = [
+        "🌙 Late evening focus!",
+        "🌃 Evening wind down time",
+        "🦉 Night owl productivity",
+        "🌆 Evening reflection mode",
+        "💪 Evening focus power",
+        "🎯 Night productivity session",
+        "🔥 Evening energy surge",
+        "📋 Evening wrap up time"
+      ];
+      return lateEveningMessages[Math.floor(Math.random() * lateEveningMessages.length)];
+    }
+    
+    // Night motivation (12 AM - 3:59 AM)
+    else {
+      const nightMessages = [
+        "🧠 Time for some deep work",
+        "🦉 Night owl productivity",
+        "🤫 Quiet hours, big results",
+        "🌃 Late night focus",
+        "💪 Your dedication is inspiring",
+        "🌙 Night session activated",
+        "🕯️ Burning the midnight oil",
+        "💪 Still going strong!"
+      ];
+      return nightMessages[Math.floor(Math.random() * nightMessages.length)];
+    }
+  };
+  
+  const greeting = getGreeting();
+  const motivationalMessage = getMotivationalMessage();
 
   return (
     <div className="min-h-full bg-background">
@@ -596,7 +904,7 @@ function HomeView({
       <div className="bg-gradient-to-br from-primary via-primary/90 to-accent text-primary-foreground px-4 py-8 md:py-12">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold mb-2">{greeting}</h2>
-          <p className="text-primary-foreground/80 text-lg mb-6">Let&apos;s make today productive!</p>
+          <p className="text-primary-foreground/80 text-lg mb-6">{motivationalMessage}</p>
           
           {/* Quick Stats */}
           <div className="grid grid-cols-3 gap-4 mb-6">
