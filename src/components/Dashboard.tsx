@@ -24,12 +24,14 @@ import TaskDetailModal from './TaskDetailModal';
 import TodoModal from './TodoModal';
 import { format, isToday, isTomorrow, addDays, isWithinInterval } from 'date-fns';
 import alarmManager from '@/lib/alarmManager';
+import pushNotificationService from '@/lib/pushNotificationService';
 import TodoList from './TodoList';
 import CalendarView from './CalendarView';
 import ReportsView from './ReportsView';
 import PWAInstallPrompt from './PWAInstallPrompt';
 import UpdateNotification from './UpdateNotification';
 import AlarmPopup from './AlarmPopup';
+import PushNotificationTest from './PushNotificationTest';
 
 type View = 'home' | 'todos' | 'calendar' | 'reports';
 
@@ -63,6 +65,9 @@ export default function Dashboard() {
     if (alarmManager.isNotificationSupported()) {
       alarmManager.requestPermission();
     }
+
+    // Initialize push notifications
+    initializePushNotifications();
 
     const todosRef = ref(database, `todos/${user.id}`);
     const unsubscribe = onValue(todosRef, (snapshot) => {
@@ -179,6 +184,54 @@ export default function Dashboard() {
     setShowAlarmPopup(false);
     setActiveAlarm(null);
   };
+
+  // Initialize push notifications
+  const initializePushNotifications = async () => {
+    try {
+      const isSupported = pushNotificationService.isSupported();
+      if (!isSupported) {
+        console.log('Push notifications not supported');
+        return;
+      }
+
+      await pushNotificationService.initialize();
+      
+      // Request permission
+      const permission = await pushNotificationService.requestPermission();
+      if (permission === 'granted') {
+        // Subscribe to push notifications
+        await pushNotificationService.subscribe();
+        console.log('Push notifications enabled');
+      } else {
+        console.log('Push notification permission denied');
+      }
+    } catch (error) {
+      console.error('Error initializing push notifications:', error);
+    }
+  };
+
+  // Handle messages from service worker
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'NOTIFICATION_ACTION') {
+        const { action, todoId, minutes } = event.data;
+        
+        if (action === 'complete' && todoId) {
+          handleAlarmComplete(todoId);
+        } else if (action === 'snooze' && todoId) {
+          handleAlarmSnooze(todoId, minutes || 5);
+        } else if (action === 'dismiss' && todoId) {
+          handleAlarmDismiss();
+        }
+      }
+    };
+
+    navigator.serviceWorker?.addEventListener('message', handleMessage);
+    
+    return () => {
+      navigator.serviceWorker?.removeEventListener('message', handleMessage);
+    };
+  }, []);
 
   const toggleTodo = async (todoId: string) => {
     if (!user || !database) return;
@@ -660,6 +713,13 @@ function HomeView({
       
       {/* PWA Install Prompt */}
       <PWAInstallPrompt />
+      
+      {/* Push Notification Test - Only in development */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="fixed top-4 right-4 z-[60] max-w-sm">
+          <PushNotificationTest />
+        </div>
+      )}
     </div>
   );
 }

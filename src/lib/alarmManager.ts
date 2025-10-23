@@ -1,6 +1,7 @@
 'use client';
 
 import notificationService from './notificationService';
+import pushNotificationService from './pushNotificationService';
 
 interface Alarm {
   id: string;
@@ -68,22 +69,45 @@ class AlarmManager {
 
     console.log(`Alarm triggered: ${alarm.title}`);
     
-    // Show browser notification
-    await notificationService.showNotification(alarm.title, {
-      body: alarm.body || 'Your todo alarm is ringing!',
-      requireInteraction: true,
-      vibrate: [200, 100, 200, 100, 200, 100, 200],
-      tag: alarm.id,
-      actions: [
-        { action: 'complete', title: 'Mark Done', icon: '/icon-192.svg' },
-        { action: 'snooze', title: 'Snooze 5min', icon: '/icon-192.svg' }
-      ],
-      data: {
-        todoId: alarm.todoId,
-        alarmId: alarm.id,
-        action: 'alarm'
-      }
-    });
+    // Show push notification (works even when app is closed)
+    try {
+      await pushNotificationService.showLocalNotification(`🔔 ${alarm.title}`, {
+        body: alarm.body || 'Your todo alarm is ringing!',
+        requireInteraction: true,
+        vibrate: [200, 100, 200, 100, 200, 100, 200],
+        tag: alarm.id,
+        actions: [
+          { action: 'complete', title: 'Mark Done', icon: '/icon-192.svg' },
+          { action: 'snooze', title: 'Snooze 5min', icon: '/icon-192.svg' },
+          { action: 'dismiss', title: 'Dismiss', icon: '/icon-192.svg' }
+        ],
+        data: {
+          todoId: alarm.todoId,
+          alarmId: alarm.id,
+          type: 'alarm',
+          timestamp: Date.now()
+        }
+      });
+    } catch (error) {
+      console.error('Error showing push notification:', error);
+      
+      // Fallback to regular notification
+      await notificationService.showNotification(alarm.title, {
+        body: alarm.body || 'Your todo alarm is ringing!',
+        requireInteraction: true,
+        vibrate: [200, 100, 200, 100, 200, 100, 200],
+        tag: alarm.id,
+        actions: [
+          { action: 'complete', title: 'Mark Done', icon: '/icon-192.svg' },
+          { action: 'snooze', title: 'Snooze 5min', icon: '/icon-192.svg' }
+        ],
+        data: {
+          todoId: alarm.todoId,
+          alarmId: alarm.id,
+          action: 'alarm'
+        }
+      });
+    }
 
     // Trigger callback if registered
     const callback = this.alarmCallbacks.get(alarm.id);

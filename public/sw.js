@@ -1,7 +1,7 @@
 // Service Worker with automatic updates and cache management
 // This will be generated with a unique version on each build
 
-const CACHE_VERSION = '1761239315532-5223b96'; // This will be replaced during build
+const CACHE_VERSION = '1761239705980-8bb5c21'; // This will be replaced during build
 const CACHE_NAME = `everytodo-v${CACHE_VERSION}`;
 const STATIC_CACHE_NAME = `everytodo-static-v${CACHE_VERSION}`;
 
@@ -149,57 +149,102 @@ function isStaticAsset(url) {
 
 // Handle push notifications
 self.addEventListener('push', (event) => {
-  if (event.data) {
-    const data = event.data.json();
-    const options = {
-      body: data.body,
-      icon: '/icon-192.svg',
-      badge: '/icon-192.svg',
-      vibrate: [100, 50, 100],
-      data: {
-        dateOfArrival: Date.now(),
-        primaryKey: data.primaryKey || '1'
-      },
-      actions: [
-        {
-          action: 'complete',
-          title: 'Mark Complete',
-          icon: '/icon-192.svg'
-        },
-        {
-          action: 'snooze',
-          title: 'Snooze 1 min',
-          icon: '/icon-192.svg'
-        }
-      ]
-    };
+  console.log('Push event received:', event);
+  
+  let notificationData = {
+    title: 'EveryTodo Alarm',
+    body: 'Your todo alarm is ringing!',
+    icon: '/icon-192.svg',
+    badge: '/icon-192.svg',
+    tag: 'everytodo-alarm',
+    requireInteraction: true,
+    vibrate: [200, 100, 200, 100, 200, 100, 200],
+    actions: [
+      { action: 'complete', title: 'Mark Done', icon: '/icon-192.svg' },
+      { action: 'snooze', title: 'Snooze 5min', icon: '/icon-192.svg' },
+      { action: 'dismiss', title: 'Dismiss', icon: '/icon-192.svg' }
+    ],
+    data: {
+      timestamp: Date.now(),
+      type: 'alarm'
+    }
+  };
 
-    event.waitUntil(
-      self.registration.showNotification(data.title, options)
-    );
+  if (event.data) {
+    try {
+      const data = event.data.json();
+      notificationData = {
+        ...notificationData,
+        title: data.title || notificationData.title,
+        body: data.body || notificationData.body,
+        tag: data.tag || `alarm-${Date.now()}`,
+        data: {
+          ...notificationData.data,
+          ...data,
+          todoId: data.todoId,
+          type: data.type || 'alarm'
+        }
+      };
+    } catch (error) {
+      console.log('Error parsing push data:', error);
+    }
   }
+
+  event.waitUntil(
+    self.registration.showNotification(notificationData.title, notificationData)
+  );
 });
 
 // Handle notification clicks
 self.addEventListener('notificationclick', (event) => {
+  console.log('Notification clicked:', event.action, event.notification.data);
   event.notification.close();
 
-  if (event.action === 'complete') {
-    // Handle complete action
-    event.waitUntil(
-      clients.openWindow('/?action=complete&id=' + event.notification.data.primaryKey)
-    );
-  } else if (event.action === 'snooze') {
-    // Handle snooze action
-    event.waitUntil(
-      clients.openWindow('/?action=snooze&id=' + event.notification.data.primaryKey)
-    );
-  } else {
-    // Default click action
-    event.waitUntil(
-      clients.openWindow('/')
-    );
-  }
+  const data = event.notification.data;
+  const action = event.action;
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      // Try to focus existing window
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.focus();
+          
+          // Send message to the app about the notification action
+          client.postMessage({
+            type: 'NOTIFICATION_ACTION',
+            action: action || 'click',
+            todoId: data?.todoId,
+            minutes: action === 'snooze' ? 5 : undefined
+          });
+          
+          return;
+        }
+      }
+      
+      // If no window is open, open a new one
+      if (clients.openWindow) {
+        let url = '/';
+        if (action === 'complete' && data?.todoId) {
+          url = `/?action=complete&id=${data.todoId}`;
+        } else if (action === 'snooze' && data?.todoId) {
+          url = `/?action=snooze&id=${data.todoId}`;
+        }
+        
+        return clients.openWindow(url).then(newClient => {
+          if (newClient) {
+            // Send message to the new window
+            newClient.postMessage({
+              type: 'NOTIFICATION_ACTION',
+              action: action || 'click',
+              todoId: data?.todoId,
+              minutes: action === 'snooze' ? 5 : undefined
+            });
+          }
+        });
+      }
+    })
+  );
 });
 
 // Handle background sync
@@ -212,7 +257,20 @@ self.addEventListener('sync', (event) => {
 
 // Handle message events
 self.addEventListener('message', (event) => {
+  console.log('Service Worker received message:', event.data);
+  
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
+  } else if (event.data && event.data.type === 'SEND_PUSH_NOTIFICATION') {
+    // Handle push notification request from main app
+    const { title, options } = event.data;
+    event.waitUntil(
+      self.registration.showNotification(title, {
+        ...options,
+        icon: '/icon-192.svg',
+        badge: '/icon-192.svg',
+        vibrate: [200, 100, 200, 100, 200, 100, 200]
+      })
+    );
   }
 });
