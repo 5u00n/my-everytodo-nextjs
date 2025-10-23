@@ -14,7 +14,19 @@ export default function PushNotificationTest() {
 
   useEffect(() => {
     checkPushNotificationStatus();
+    
+    // Check if user has previously dismissed the debug popup
+    const isDismissed = localStorage.getItem('pushNotificationDebugDismissed');
+    if (isDismissed === 'true') {
+      setIsVisible(false);
+    }
   }, []);
+
+  const handleDismiss = () => {
+    setIsVisible(false);
+    // Remember that user dismissed it
+    localStorage.setItem('pushNotificationDebugDismissed', 'true');
+  };
 
   const checkPushNotificationStatus = async () => {
     const supported = pushNotificationService.isSupported();
@@ -92,7 +104,7 @@ export default function PushNotificationTest() {
             </span>
           </div>
           <button
-            onClick={() => setIsVisible(false)}
+            onClick={handleDismiss}
             className="p-1 text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-200 transition-colors"
             title="Close"
           >
@@ -113,7 +125,7 @@ export default function PushNotificationTest() {
           </h3>
         </div>
         <button
-          onClick={() => setIsVisible(false)}
+          onClick={handleDismiss}
           className="p-1 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
           title="Close"
         >

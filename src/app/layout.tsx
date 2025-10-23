@@ -72,6 +72,13 @@ export default function RootLayout({
         <meta name="msapplication-TileColor" content="#3b82f6" />
         <meta name="msapplication-tap-highlight" content="no" />
         <meta name="theme-color" content="#3b82f6" />
+        {process.env.NODE_ENV === 'development' && (
+          <>
+            <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+            <meta httpEquiv="Pragma" content="no-cache" />
+            <meta httpEquiv="Expires" content="0" />
+          </>
+        )}
       </head>
               <body
                 className={`${geistSans.variable} ${geistMono.variable} antialiased`}
@@ -93,48 +100,84 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js')
-                    .then(function(registration) {
-                      console.log('SW registered: ', registration);
-                      
-                      // Check for updates every time the page loads
-                      registration.update();
-                      
-                      // Listen for service worker updates
-                      registration.addEventListener('updatefound', function() {
-                        console.log('SW update found, installing...');
-                        const newWorker = registration.installing;
+                // Only register service worker in production
+                if (window.location.hostname !== 'localhost') {
+                  window.addEventListener('load', function() {
+                    navigator.serviceWorker.register('/sw.js')
+                      .then(function(registration) {
+                        console.log('SW registered: ', registration);
                         
-                        if (newWorker) {
-                          newWorker.addEventListener('statechange', function() {
-                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                              console.log('SW update installed, reloading page...');
-                              // Automatically reload to get the new version
-                              window.location.reload();
-                            }
-                          });
-                        }
+                        // Check for updates in production
+                        registration.update();
+                        
+                        // Listen for service worker updates
+                        registration.addEventListener('updatefound', function() {
+                          console.log('SW update found, installing...');
+                          const newWorker = registration.installing;
+                          
+                          if (newWorker) {
+                            newWorker.addEventListener('statechange', function() {
+                              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                console.log('SW update installed, showing update notification...');
+                                // Don't auto-reload, let user decide
+                                if (confirm('A new version is available. Reload to update?')) {
+                                  window.location.reload();
+                                }
+                              }
+                            });
+                          }
+                        });
+                      })
+                      .catch(function(registrationError) {
+                        console.log('SW registration failed: ', registrationError);
                       });
-                    })
-                    .catch(function(registrationError) {
-                      console.log('SW registration failed: ', registrationError);
+                    
+                    // Listen for messages from service worker
+                    navigator.serviceWorker.addEventListener('message', function(event) {
+                      if (event.data && event.data.type === 'SW_UPDATED') {
+                        console.log('Service Worker updated, showing update notification...');
+                        // Don't auto-reload, let user decide
+                        if (confirm('A new version is available. Reload to update?')) {
+                          window.location.reload();
+                        }
+                      }
                     });
-                  
-                  // Listen for messages from service worker
-                  navigator.serviceWorker.addEventListener('message', function(event) {
-                    if (event.data && event.data.type === 'SW_UPDATED') {
-                      console.log('Service Worker updated, reloading page...');
+                    
+                    // Handle service worker controller change
+                    navigator.serviceWorker.addEventListener('controllerchange', function() {
+                      console.log('Service Worker controller changed');
                       window.location.reload();
+                    });
+                  });
+                } else {
+                  // In development, unregister any existing service workers and clear caches
+                  navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    for(let registration of registrations) {
+                      console.log('Unregistering SW in development mode:', registration);
+                      registration.unregister();
                     }
                   });
                   
-                  // Handle service worker controller change
-                  navigator.serviceWorker.addEventListener('controllerchange', function() {
-                    console.log('Service Worker controller changed, reloading page...');
-                    window.location.reload();
-                  });
-                });
+                  // Clear all caches in development
+                  if ('caches' in window) {
+                    caches.keys().then(function(cacheNames) {
+                      return Promise.all(
+                        cacheNames.map(function(cacheName) {
+                          console.log('Deleting cache in development:', cacheName);
+                          return caches.delete(cacheName);
+                        })
+                      );
+                    });
+                  }
+                  
+                  // Add cache busting for development
+                  if (window.location.search.indexOf('v=') === -1) {
+                    const timestamp = Date.now();
+                    const url = new URL(window.location);
+                    url.searchParams.set('v', timestamp.toString());
+                    window.history.replaceState({}, '', url);
+                  }
+                }
               }
             `,
           }}
