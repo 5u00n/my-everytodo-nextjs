@@ -8,6 +8,8 @@ interface AlarmPopupProps {
   title: string;
   body?: string;
   todoId?: string;
+  duration?: number; // Duration in minutes
+  repeatCount?: number; // Number of times to repeat
   onDismiss: () => void;
   onComplete?: (todoId: string) => void;
   onSnooze?: (todoId: string, minutes: number) => void;
@@ -18,6 +20,8 @@ export default function AlarmPopup({
   title,
   body,
   todoId,
+  duration = 5, // Default 5 minutes
+  repeatCount = 3, // Default 3 repeats
   onDismiss,
   onComplete,
   onSnooze
@@ -25,6 +29,9 @@ export default function AlarmPopup({
   const [isMuted, setIsMuted] = useState(false);
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [alarmInterval, setAlarmInterval] = useState<NodeJS.Timeout | null>(null);
+  const [remainingTime, setRemainingTime] = useState<number>(0);
+  const [currentRepeat, setCurrentRepeat] = useState<number>(0);
 
   useEffect(() => {
     if (isVisible) {
@@ -33,13 +40,74 @@ export default function AlarmPopup({
         Notification.requestPermission();
       }
       
-      // Start playing alarm sound
-      playAlarmSound();
+      // Start playing alarm sound with proper duration
+      startAlarmSequence();
       
       // Focus the window to bring it to front
       window.focus();
+    } else {
+      // Stop alarm when popup is dismissed
+      stopAlarmSequence();
     }
+
+    // Cleanup on unmount
+    return () => {
+      stopAlarmSequence();
+    };
   }, [isVisible]);
+
+  // Start the full alarm sequence
+  const startAlarmSequence = () => {
+    if (isMuted) return;
+    
+    // Calculate interval between alarm sounds
+    const totalDurationMs = duration * 60 * 1000; // Convert minutes to milliseconds
+    const intervalMs = totalDurationMs / repeatCount; // Distribute repeats over duration
+    
+    setRemainingTime(duration * 60); // Set remaining time in seconds
+    setCurrentRepeat(0);
+    
+    let currentRepeatCount = 0;
+    
+    const playNextAlarm = () => {
+      if (currentRepeatCount >= repeatCount || isMuted) {
+        return;
+      }
+      
+      playAlarmSound();
+      currentRepeatCount++;
+      setCurrentRepeat(currentRepeatCount);
+      
+      // Schedule next alarm
+      if (currentRepeatCount < repeatCount) {
+        const interval = setTimeout(playNextAlarm, intervalMs);
+        setAlarmInterval(interval);
+      }
+    };
+    
+    // Start countdown timer
+    const countdownInterval = setInterval(() => {
+      setRemainingTime(prev => {
+        if (prev <= 1) {
+          clearInterval(countdownInterval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    // Start the first alarm immediately
+    playNextAlarm();
+  };
+
+  // Stop the alarm sequence
+  const stopAlarmSequence = () => {
+    if (alarmInterval) {
+      clearTimeout(alarmInterval);
+      setAlarmInterval(null);
+    }
+    setIsPlaying(false);
+  };
 
   const playAlarmSound = async () => {
     if (isMuted) return;
@@ -97,7 +165,16 @@ export default function AlarmPopup({
   };
 
   const toggleMute = () => {
-    setIsMuted(!isMuted);
+    const newMutedState = !isMuted;
+    setIsMuted(newMutedState);
+    
+    if (newMutedState) {
+      // Stop alarm when muting
+      stopAlarmSequence();
+    } else {
+      // Restart alarm when unmuting
+      startAlarmSequence();
+    }
   };
 
   if (!isVisible) return null;
@@ -126,10 +203,28 @@ export default function AlarmPopup({
             {title}
           </h3>
           {body && (
-            <p className="text-gray-600 dark:text-gray-300 mb-6">
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
               {body}
             </p>
           )}
+
+          {/* Alarm Status */}
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 mb-6">
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center space-x-2">
+                <Bell className={`w-4 h-4 ${isPlaying ? 'animate-bounce text-red-600' : 'text-red-500'}`} />
+                <span className="font-medium text-red-800 dark:text-red-200">
+                  Alarm Active
+                </span>
+              </div>
+              <div className="text-red-600 dark:text-red-400">
+                {currentRepeat}/{repeatCount} repeats
+              </div>
+            </div>
+            <div className="mt-2 text-xs text-red-700 dark:text-red-300">
+              Duration: {duration} minutes • Remaining: {Math.floor(remainingTime / 60)}:{(remainingTime % 60).toString().padStart(2, '0')}
+            </div>
+          </div>
 
           {/* Action buttons */}
           <div className="space-y-3">

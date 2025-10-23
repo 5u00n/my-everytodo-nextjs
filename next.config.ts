@@ -14,6 +14,13 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: false,
   },
+  
+  // Environment variables
+  env: {
+    NEXT_PUBLIC_APP_VERSION: process.env.npm_package_version || '1.0.0',
+    NEXT_PUBLIC_BUILD_DATE: new Date().toISOString(),
+    NEXT_PUBLIC_NODE_VERSION: process.version,
+  },
 };
 
 export default nextConfig;

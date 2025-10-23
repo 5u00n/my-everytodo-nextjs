@@ -32,6 +32,7 @@ import PWAInstallPrompt from './PWAInstallPrompt';
 import UpdateNotification from './UpdateNotification';
 import AlarmPopup from './AlarmPopup';
 import PushNotificationTest from './PushNotificationTest';
+import ProfileModal from './ProfileModal';
 
 type View = 'home' | 'todos' | 'calendar' | 'reports';
 
@@ -51,8 +52,13 @@ export default function Dashboard() {
     title: string;
     body?: string;
     todoId: string;
+    duration?: number;
+    repeatCount?: number;
   } | null>(null);
   const [showAlarmPopup, setShowAlarmPopup] = useState(false);
+  
+  // Profile modal state
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   useEffect(() => {
     if (!user || !database) {
@@ -112,12 +118,18 @@ export default function Dashboard() {
             alarmTime,
             todo.description,
             (alarm) => {
+              // Find the todo to get alarm settings
+              const todo = todos.find(t => t.id === alarm.todoId);
+              const alarmSettings = todo?.alarmSettings;
+              
               // Show alarm popup when triggered
               setActiveAlarm({
                 id: alarm.id,
                 title: alarm.title,
                 body: alarm.body,
-                todoId: alarm.todoId
+                todoId: alarm.todoId,
+                duration: alarmSettings?.duration || 5,
+                repeatCount: alarmSettings?.repeatCount || 3
               });
               setShowAlarmPopup(true);
             }
@@ -166,11 +178,17 @@ export default function Dashboard() {
         newAlarmTime,
         todo.description,
         (alarm) => {
+          // Find the todo to get alarm settings
+          const todo = todos.find(t => t.id === alarm.todoId);
+          const alarmSettings = todo?.alarmSettings;
+          
           setActiveAlarm({
             id: alarm.id,
             title: alarm.title,
             body: alarm.body,
-            todoId: alarm.todoId
+            todoId: alarm.todoId,
+            duration: alarmSettings?.duration || 5,
+            repeatCount: alarmSettings?.repeatCount || 3
           });
           setShowAlarmPopup(true);
         }
@@ -434,9 +452,19 @@ export default function Dashboard() {
       <div className="bg-background border-b border-border shadow-sm safe-top">
         <div className="flex justify-between items-center px-4 py-3">
           <h1 className="text-xl md:text-2xl font-bold text-foreground">EveryTodo</h1>
-          <div className="flex items-center space-x-3">
-            <span className="text-sm text-muted-foreground hidden md:inline">Welcome, {user?.displayName}</span>
-            <span className="text-sm text-muted-foreground md:hidden">{user?.displayName}</span>
+                  <div className="flex items-center space-x-3">
+                    <button
+                      onClick={() => setShowProfileModal(true)}
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden md:inline cursor-pointer"
+                    >
+                      Welcome, {user?.displayName}
+                    </button>
+                    <button
+                      onClick={() => setShowProfileModal(true)}
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors md:hidden cursor-pointer"
+                    >
+                      {user?.displayName}
+                    </button>
             <button
               onClick={() => {
                 if ('serviceWorker' in navigator && 'PushManager' in window) {
@@ -523,11 +551,19 @@ export default function Dashboard() {
           title={activeAlarm.title}
           body={activeAlarm.body}
           todoId={activeAlarm.todoId}
+          duration={activeAlarm.duration}
+          repeatCount={activeAlarm.repeatCount}
           onDismiss={handleAlarmDismiss}
           onComplete={handleAlarmComplete}
           onSnooze={handleAlarmSnooze}
         />
       )}
+      
+      {/* Profile Modal */}
+      <ProfileModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+      />
     </div>
   );
 }
