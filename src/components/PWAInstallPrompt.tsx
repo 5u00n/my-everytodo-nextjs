@@ -17,8 +17,20 @@ export default function PWAInstallPrompt() {
   useEffect(() => {
     // Check if app is already installed
     if (window.matchMedia('(display-mode: standalone)').matches) {
+      console.log('PWA: App is already installed');
       setIsInstalled(true);
       return;
+    }
+
+    // Check if user has dismissed the prompt recently
+    const dismissedTime = localStorage.getItem('pwa-install-dismissed');
+    if (dismissedTime) {
+      const timeDiff = Date.now() - parseInt(dismissedTime);
+      const oneDay = 24 * 60 * 60 * 1000; // 24 hours
+      if (timeDiff < oneDay) {
+        console.log('PWA: Install prompt was dismissed recently, not showing');
+        return;
+      }
     }
 
     // Detect device type
@@ -34,9 +46,11 @@ export default function PWAInstallPrompt() {
     };
 
     detectDevice();
+    console.log('PWA: Device type detected:', deviceType);
 
     // Listen for the beforeinstallprompt event
     const handleBeforeInstallPrompt = (e: Event) => {
+      console.log('PWA: beforeinstallprompt event fired');
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       setShowInstallPrompt(true);
@@ -44,6 +58,7 @@ export default function PWAInstallPrompt() {
 
     // Listen for the appinstalled event
     const handleAppInstalled = () => {
+      console.log('PWA: App was installed');
       setIsInstalled(true);
       setShowInstallPrompt(false);
       setDeferredPrompt(null);
@@ -52,19 +67,20 @@ export default function PWAInstallPrompt() {
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
 
-    // Show install prompt after a delay if not already shown
+    // Always show install prompt after a delay for better visibility
     const timer = setTimeout(() => {
-      if (!isInstalled && !deferredPrompt) {
+      if (!isInstalled) {
+        console.log('PWA: Showing install prompt after delay');
         setShowInstallPrompt(true);
       }
-    }, 3000);
+    }, 2000);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
       clearTimeout(timer);
     };
-  }, [isInstalled, deferredPrompt]);
+  }, [isInstalled, deviceType]);
 
   const handleInstallClick = async () => {
     if (deferredPrompt) {
@@ -164,7 +180,10 @@ Safari:
             </div>
           </div>
           <button
-            onClick={() => setShowInstallPrompt(false)}
+            onClick={() => {
+              setShowInstallPrompt(false);
+              localStorage.setItem('pwa-install-dismissed', Date.now().toString());
+            }}
             className="flex-shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
           >
             <X className="w-4 h-4" />

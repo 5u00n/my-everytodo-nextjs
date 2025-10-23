@@ -139,14 +139,80 @@ class NotificationService {
     }
 
     const timeoutId = setTimeout(() => {
-      this.showNotification(title, {
-        ...options,
-        requireInteraction: true,
-        vibrate: [200, 100, 200, 100, 200]
-      });
+      this.startPersistentAlarm(title, options);
     }, delay);
 
     return timeoutId as unknown as number;
+  }
+
+  private async startPersistentAlarm(title: string, options: Record<string, unknown>) {
+    const duration = (options.duration as number) || 5; // Default 5 minutes
+    const repeatCount = (options.repeatCount as number) || 3; // Default 3 repeats
+    const snoozeMinutes = (options.snoozeMinutes as number) || 1;
+    
+    let currentRepeat = 0;
+    const intervalTime = (duration * 60 * 1000) / repeatCount; // Distribute repeats over duration
+
+    const alarmInterval = setInterval(async () => {
+      if (currentRepeat >= repeatCount) {
+        clearInterval(alarmInterval);
+        return;
+      }
+
+      // Show persistent notification
+      const notification = await this.showNotification(title, {
+        ...options,
+        requireInteraction: true,
+        vibrate: [200, 100, 200, 100, 200, 100, 200],
+        tag: `alarm-${Date.now()}`, // Unique tag to prevent stacking
+        actions: [
+          { action: 'snooze', title: `Snooze ${snoozeMinutes}min`, icon: '/icon-192.svg' },
+          { action: 'complete', title: 'Mark Done', icon: '/icon-192.svg' },
+          { action: 'stop', title: 'Stop Alarm', icon: '/icon-192.svg' }
+        ],
+        data: {
+          ...(options.data || {}),
+          action: 'alarm',
+          snoozeMinutes,
+          alarmId: `alarm-${Date.now()}`
+        }
+      });
+
+      // Play longer alarm sound
+      this.playAlarmSound();
+
+      currentRepeat++;
+    }, intervalTime);
+
+    // Store interval ID for potential cancellation
+    return alarmInterval;
+  }
+
+  private playAlarmSound() {
+    try {
+      const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      
+      // Create a more persistent alarm sound
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      // Create a more urgent alarm pattern
+      const frequencies = [800, 600, 800, 600, 800];
+      frequencies.forEach((freq, index) => {
+        oscillator.frequency.setValueAtTime(freq, audioContext.currentTime + index * 0.2);
+      });
+      
+      gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 1);
+    } catch (error) {
+      console.log('Audio alarm not supported:', error);
+    }
   }
 
   cancelNotification(timeoutId: number) {

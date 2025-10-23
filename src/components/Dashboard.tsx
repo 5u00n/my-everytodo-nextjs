@@ -27,6 +27,7 @@ import TodoList from './TodoList';
 import CalendarView from './CalendarView';
 import ReportsView from './ReportsView';
 import PWAInstallPrompt from './PWAInstallPrompt';
+import UpdateNotification from './UpdateNotification';
 
 type View = 'home' | 'todos' | 'calendar' | 'reports';
 
@@ -505,6 +506,9 @@ function HomeView({
           </div>
         </section>
       </div>
+      
+      {/* Update Notification */}
+      <UpdateNotification />
       
       {/* PWA Install Prompt */}
       <PWAInstallPrompt />

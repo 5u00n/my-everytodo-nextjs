@@ -97,10 +97,43 @@ export default function RootLayout({
                   navigator.serviceWorker.register('/sw.js')
                     .then(function(registration) {
                       console.log('SW registered: ', registration);
+                      
+                      // Check for updates every time the page loads
+                      registration.update();
+                      
+                      // Listen for service worker updates
+                      registration.addEventListener('updatefound', function() {
+                        console.log('SW update found, installing...');
+                        const newWorker = registration.installing;
+                        
+                        if (newWorker) {
+                          newWorker.addEventListener('statechange', function() {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                              console.log('SW update installed, reloading page...');
+                              // Automatically reload to get the new version
+                              window.location.reload();
+                            }
+                          });
+                        }
+                      });
                     })
                     .catch(function(registrationError) {
                       console.log('SW registration failed: ', registrationError);
                     });
+                  
+                  // Listen for messages from service worker
+                  navigator.serviceWorker.addEventListener('message', function(event) {
+                    if (event.data && event.data.type === 'SW_UPDATED') {
+                      console.log('Service Worker updated, reloading page...');
+                      window.location.reload();
+                    }
+                  });
+                  
+                  // Handle service worker controller change
+                  navigator.serviceWorker.addEventListener('controllerchange', function() {
+                    console.log('Service Worker controller changed, reloading page...');
+                    window.location.reload();
+                  });
                 });
               }
             `,

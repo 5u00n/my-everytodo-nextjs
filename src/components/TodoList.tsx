@@ -119,10 +119,14 @@ export default function TodoList() {
           body: newTodo.description || 'Time to get things done!',
           vibrate: newTodo.alarmSettings.vibrate ? [200, 100, 200] : undefined,
           requireInteraction: true,
+          duration: newTodo.alarmSettings.duration || 5,
+          repeatCount: newTodo.alarmSettings.repeatCount || 3,
+          snoozeMinutes: newTodo.alarmSettings.snoozeMinutes || 1,
           data: { todoId: newTodoRef.key, action: 'alarm' },
           actions: [
-            { action: 'snooze', title: 'Snooze 1min', icon: '/icon-192.svg' },
-            { action: 'complete', title: 'Mark Done', icon: '/icon-192.svg' }
+            { action: 'snooze', title: `Snooze ${newTodo.alarmSettings.snoozeMinutes || 1}min`, icon: '/icon-192.svg' },
+            { action: 'complete', title: 'Mark Done', icon: '/icon-192.svg' },
+            { action: 'stop', title: 'Stop Alarm', icon: '/icon-192.svg' }
           ]
         }
       );
@@ -145,16 +149,21 @@ export default function TodoList() {
 
     const allTasksCompleted = updatedTasks.every(task => task.isCompleted);
     const now = getCurrentTimestamp();
-    const updatedTodo = {
-      ...todo,
+    const updatedFields: Partial<Todo> = {
       tasks: updatedTasks,
       isCompleted: allTasksCompleted,
       updatedAt: now,
-      completedAt: allTasksCompleted ? now : undefined
     };
 
+    // Only set completedAt if completing the todo, remove it if uncompleting
+    if (allTasksCompleted) {
+      updatedFields.completedAt = now;
+    } else {
+      updatedFields.completedAt = undefined;
+    }
+
     const todoRef = ref(database, `todos/${user.id}/${todoId}`);
-    await update(todoRef, updatedTodo);
+    await update(todoRef, updatedFields);
 
     // Cancel notification if all tasks are completed
     if (allTasksCompleted) {
@@ -253,7 +262,9 @@ export default function TodoList() {
         vibrate: true,
         sound: true,
         notification: true,
-        snoozeMinutes: 1
+        snoozeMinutes: 1,
+        duration: 5,
+        repeatCount: 3
       }
     };
   });
@@ -289,7 +300,9 @@ export default function TodoList() {
         vibrate: true,
         sound: true,
         notification: true,
-        snoozeMinutes: 1
+        snoozeMinutes: 1,
+        duration: 5,
+        repeatCount: 3
       }
     });
     
@@ -501,13 +514,12 @@ export default function TodoList() {
                           <button
                             onClick={() => {
                               if (!database || !user) return;
-                              const updatedTodo = {
-                                ...todo,
+                              const updatedFields = {
                                 alarmSettings: { ...todo.alarmSettings, enabled: !todo.alarmSettings.enabled },
                                 updatedAt: getCurrentTimestamp()
                               };
                               const todoRef = ref(database, `todos/${user.id}/${todo.id}`);
-                              update(todoRef, updatedTodo);
+                              update(todoRef, updatedFields);
                             }}
                             className="mr-2"
                           >

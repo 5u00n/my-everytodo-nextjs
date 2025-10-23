@@ -44,7 +44,7 @@ export default function TodoModal({ isOpen, onClose, onSubmit, title, initialDat
       tasks: [],
       scheduledTime: Date.now() + 60 * 60 * 1000, // 1 hour from now
       repeatPattern: { type: 'none' as 'none' | 'daily' | 'weekly' | 'monthly' },
-      alarmSettings: { enabled: true, vibrate: true, sound: true, notification: true, snoozeMinutes: 1 },
+      alarmSettings: { enabled: true, vibrate: true, sound: true, notification: true, snoozeMinutes: 1, duration: 5, repeatCount: 3 },
       isCompleted: false,
       isActive: true,
     }
@@ -71,7 +71,7 @@ export default function TodoModal({ isOpen, onClose, onSubmit, title, initialDat
         tasks: [],
         scheduledTime: Date.now() + 60 * 60 * 1000, // 1 hour from now
         repeatPattern: { type: 'none' as 'none' | 'daily' | 'weekly' | 'monthly' },
-        alarmSettings: { enabled: true, vibrate: true, sound: true, notification: true, snoozeMinutes: 1 },
+        alarmSettings: { enabled: true, vibrate: true, sound: true, notification: true, snoozeMinutes: 1, duration: 5, repeatCount: 3 },
         isCompleted: false,
         isActive: true,
       });
@@ -90,12 +90,12 @@ export default function TodoModal({ isOpen, onClose, onSubmit, title, initialDat
   };
 
   const handleAlarmSettingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = e.target;
+    const { name, type, checked, value } = e.target;
     setFormData(prev => ({
       ...prev,
       alarmSettings: {
         ...prev.alarmSettings,
-        [name]: checked,
+        [name]: type === 'checkbox' ? checked : parseInt(value) || 0,
       },
     }));
   };
@@ -301,6 +301,57 @@ export default function TodoModal({ isOpen, onClose, onSubmit, title, initialDat
                 className="h-4 w-4 text-primary border-input rounded mr-2"
               />
               <label htmlFor="alarmNotification" className="text-sm text-foreground">Show Notification</label>
+            </div>
+            
+            {/* Alarm Duration */}
+            <div className="mt-3">
+              <label htmlFor="alarmDuration" className="block text-sm font-medium text-foreground mb-1">
+                Alarm Duration (minutes)
+              </label>
+              <input
+                type="number"
+                id="alarmDuration"
+                name="duration"
+                min="1"
+                max="60"
+                value={formData.alarmSettings.duration}
+                onChange={handleAlarmSettingChange}
+                className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+            </div>
+            
+            {/* Repeat Count */}
+            <div className="mt-3">
+              <label htmlFor="alarmRepeatCount" className="block text-sm font-medium text-foreground mb-1">
+                Repeat Count
+              </label>
+              <input
+                type="number"
+                id="alarmRepeatCount"
+                name="repeatCount"
+                min="1"
+                max="10"
+                value={formData.alarmSettings.repeatCount}
+                onChange={handleAlarmSettingChange}
+                className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+            </div>
+            
+            {/* Snooze Minutes */}
+            <div className="mt-3">
+              <label htmlFor="snoozeMinutes" className="block text-sm font-medium text-foreground mb-1">
+                Snooze Duration (minutes)
+              </label>
+              <input
+                type="number"
+                id="snoozeMinutes"
+                name="snoozeMinutes"
+                min="1"
+                max="30"
+                value={formData.alarmSettings.snoozeMinutes}
+                onChange={handleAlarmSettingChange}
+                className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
             </div>
           </div>
 
