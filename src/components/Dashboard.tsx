@@ -35,6 +35,7 @@ import PushNotificationTest from './PushNotificationTest';
 import ProfileModal from './ProfileModal';
 import VersionDisplay from './VersionDisplay';
 import UserAvatar from './UserAvatar';
+import AnimatedHero from './AnimatedHero';
 
 type View = 'home' | 'todos' | 'calendar' | 'reports';
 
@@ -900,37 +901,15 @@ function HomeView({
 
   return (
     <div className="min-h-full bg-background">
-      {/* Hero Section */}
-      <div className="bg-gradient-to-br from-primary via-primary/90 to-accent text-primary-foreground px-4 py-8 md:py-12">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold mb-2">{greeting}</h2>
-          <p className="text-primary-foreground/80 text-lg mb-6">{motivationalMessage}</p>
-          
-          {/* Quick Stats */}
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold">{todaysTodos.length}</div>
-              <div className="text-sm text-primary-foreground/80">Today&apos;s Tasks</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold">{completedToday}</div>
-              <div className="text-sm text-primary-foreground/80">Completed</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold">{totalTodos}</div>
-              <div className="text-sm text-primary-foreground/80">Total Todos</div>
-            </div>
-          </div>
-
-          <button 
-            onClick={() => onNavigate('todos')}
-            className="mobile-button bg-primary-foreground text-primary hover:bg-primary-foreground/90 focus-ring"
-          >
-            <Plus className="w-5 h-5 mr-2 inline" />
-            Add New Todo
-          </button>
-        </div>
-      </div>
+      {/* Animated Hero Section */}
+      <AnimatedHero
+        greeting={greeting}
+        motivationalMessage={motivationalMessage}
+        todaysTodos={todaysTodos.length}
+        completedToday={completedToday}
+        totalTodos={totalTodos}
+        onNavigate={onNavigate}
+      />
 
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         {/* Today's Focus */}
