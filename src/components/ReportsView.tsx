@@ -10,14 +10,17 @@ import {
   TrendingUp, 
   Clock, 
   CheckCircle2, 
-  Bell, 
   Calendar,
-  Download,
-  Filter
+  Bell,
+  Target,
+  Award,
+  Activity,
+  Filter,
+  Download
 } from 'lucide-react';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, subWeeks, subMonths } from 'date-fns';
+import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 
-type TimeRange = 'week' | 'month' | 'quarter' | 'year';
+type TimeFilter = 'week' | 'month' | 'all';
 
 interface ReportData {
   totalTodos: number;
@@ -29,17 +32,17 @@ interface ReportData {
   completionRate: number;
   taskCompletionRate: number;
   averageTasksPerTodo: number;
+  todosByDay: { date: string; count: number; completed: number }[];
+  todosByHour: { hour: number; count: number }[];
   mostProductiveDay: string;
-  todosByDay: { [key: string]: number };
-  todosByHour: { [key: string]: number };
-  completionTrend: { [key: string]: number };
+  mostProductiveHour: number;
 }
 
 export default function ReportsView() {
   const { user } = useAuth();
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState<TimeRange>('month');
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>('week');
   const [reportData, setReportData] = useState<ReportData | null>(null);
 
   useEffect(() => {
@@ -50,16 +53,17 @@ export default function ReportsView() {
 
     const todosRef = ref(database, `todos/${user.id}`);
     const unsubscribe = onValue(todosRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const todosData = snapshot.val();
-        const todosList = Object.keys(todosData).map(key => ({
-          id: key,
-          ...todosData[key]
-        }));
-        setTodos(todosList);
-      } else {
-        setTodos([]);
+      const data = snapshot.val();
+      const loadedTodos: Todo[] = [];
+      if (data) {
+        for (const todoId in data) {
+          loadedTodos.push({ id: todoId, ...data[todoId] });
+        }
       }
+      setTodos(loadedTodos);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching todos:", error);
       setLoading(false);
     });
 
@@ -70,39 +74,40 @@ export default function ReportsView() {
     if (todos.length > 0) {
       generateReport();
     }
-  }, [todos, timeRange]);
+  }, [todos, timeFilter]);
 
-  const getDateRange = () => {
+  const getFilteredTodos = () => {
     const now = new Date();
-    switch (timeRange) {
+    switch (timeFilter) {
       case 'week':
-        return { start: startOfWeek(now), end: endOfWeek(now) };
+        const weekStart = startOfWeek(now);
+        const weekEnd = endOfWeek(now);
+        return todos.filter(todo => {
+          const todoDate = new Date(todo.scheduledTime);
+          return isWithinInterval(todoDate, { start: weekStart, end: weekEnd });
+        });
       case 'month':
-        return { start: startOfMonth(now), end: endOfMonth(now) };
-      case 'quarter':
-        return { start: subMonths(now, 3), end: now };
-      case 'year':
-        return { start: subMonths(now, 12), end: now };
+        const monthStart = startOfMonth(now);
+        const monthEnd = endOfMonth(now);
+        return todos.filter(todo => {
+          const todoDate = new Date(todo.scheduledTime);
+          return isWithinInterval(todoDate, { start: monthStart, end: monthEnd });
+        });
       default:
-        return { start: startOfMonth(now), end: endOfMonth(now) };
+        return todos;
     }
   };
 
   const generateReport = () => {
-    const { start, end } = getDateRange();
+    const filteredTodos = getFilteredTodos();
     
-    const filteredTodos = todos.filter(todo => {
-      const todoDate = new Date(todo.createdAt);
-      return todoDate >= start && todoDate <= end;
-    });
-
     const totalTodos = filteredTodos.length;
     const completedTodos = filteredTodos.filter(todo => todo.isCompleted).length;
     const pendingTodos = totalTodos - completedTodos;
     
-    const totalTasks = filteredTodos.reduce((sum, todo) => sum + todo.tasks.length, 0);
+    const totalTasks = filteredTodos.reduce((sum, todo) => sum + (todo.tasks?.length || 0), 0);
     const completedTasks = filteredTodos.reduce((sum, todo) => 
-      sum + todo.tasks.filter(task => task.isCompleted).length, 0
+      sum + (todo.tasks?.filter(task => task.isCompleted).length || 0), 0
     );
     
     const alarmEnabledTodos = filteredTodos.filter(todo => todo.alarmSettings.enabled).length;
@@ -110,29 +115,43 @@ export default function ReportsView() {
     const taskCompletionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
     const averageTasksPerTodo = totalTodos > 0 ? totalTasks / totalTodos : 0;
 
-    // Analyze todos by day of week
-    const todosByDay: { [key: string]: number } = {};
-    const todosByHour: { [key: string]: number } = {};
-    const completionTrend: { [key: string]: number } = {};
+    // Generate todos by day data
+    const todosByDay = [];
+    const days = timeFilter === 'week' ? 7 : timeFilter === 'month' ? 30 : 365;
+    for (let i = days - 1; i >= 0; i--) {
+      const date = subDays(new Date(), i);
+      const dayTodos = filteredTodos.filter(todo => {
+        const todoDate = new Date(todo.scheduledTime);
+        return todoDate.toDateString() === date.toDateString();
+      });
+      todosByDay.push({
+        date: format(date, 'MMM d'),
+        count: dayTodos.length,
+        completed: dayTodos.filter(todo => todo.isCompleted).length
+      });
+    }
 
-    filteredTodos.forEach(todo => {
-      const todoDate = new Date(todo.scheduledTime);
-      const dayOfWeek = format(todoDate, 'EEEE');
-      const hour = format(todoDate, 'HH');
-      const dateKey = format(todoDate, 'yyyy-MM-dd');
+    // Generate todos by hour data
+    const todosByHour = [];
+    for (let hour = 0; hour < 24; hour++) {
+      const hourTodos = filteredTodos.filter(todo => {
+        const todoDate = new Date(todo.scheduledTime);
+        return todoDate.getHours() === hour;
+      });
+      todosByHour.push({
+        hour,
+        count: hourTodos.length
+      });
+    }
 
-      todosByDay[dayOfWeek] = (todosByDay[dayOfWeek] || 0) + 1;
-      todosByHour[hour] = (todosByHour[hour] || 0) + 1;
-      
-      if (todo.isCompleted) {
-        completionTrend[dateKey] = (completionTrend[dateKey] || 0) + 1;
-      }
-    });
+    // Find most productive day and hour
+    const mostProductiveDay = todosByDay.reduce((max, day) => 
+      day.count > max.count ? day : max, todosByDay[0] || { date: 'N/A', count: 0 }
+    ).date;
 
-    // Find most productive day
-    const mostProductiveDay = Object.keys(todosByDay).reduce((a, b) => 
-      todosByDay[a] > todosByDay[b] ? a : b, 'Monday'
-    );
+    const mostProductiveHour = todosByHour.reduce((max, hour) => 
+      hour.count > max.count ? hour : max, todosByHour[0] || { hour: 0, count: 0 }
+    ).hour;
 
     setReportData({
       totalTodos,
@@ -144,16 +163,16 @@ export default function ReportsView() {
       completionRate,
       taskCompletionRate,
       averageTasksPerTodo,
-      mostProductiveDay,
       todosByDay,
       todosByHour,
-      completionTrend
+      mostProductiveDay,
+      mostProductiveHour
     });
   };
 
   const exportReport = () => {
     if (!reportData) return;
-
+    
     const csvContent = [
       ['Metric', 'Value'],
       ['Total Todos', reportData.totalTodos],
@@ -161,11 +180,11 @@ export default function ReportsView() {
       ['Pending Todos', reportData.pendingTodos],
       ['Total Tasks', reportData.totalTasks],
       ['Completed Tasks', reportData.completedTasks],
-      ['Alarm Enabled Todos', reportData.alarmEnabledTodos],
-      ['Completion Rate (%)', reportData.completionRate.toFixed(2)],
-      ['Task Completion Rate (%)', reportData.taskCompletionRate.toFixed(2)],
-      ['Average Tasks per Todo', reportData.averageTasksPerTodo.toFixed(2)],
-      ['Most Productive Day', reportData.mostProductiveDay]
+      ['Completion Rate', `${reportData.completionRate.toFixed(1)}%`],
+      ['Task Completion Rate', `${reportData.taskCompletionRate.toFixed(1)}%`],
+      ['Average Tasks per Todo', reportData.averageTasksPerTodo.toFixed(1)],
+      ['Most Productive Day', reportData.mostProductiveDay],
+      ['Most Productive Hour', `${reportData.mostProductiveHour}:00`]
     ].map(row => row.join(',')).join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -179,209 +198,222 @@ export default function ReportsView() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   if (!reportData) {
     return (
-      <div className="max-w-7xl mx-auto p-6">
-        <div className="text-center py-12">
-          <BarChart3 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No data available</h3>
-          <p className="text-gray-500">Create some todos to see your activity reports</p>
-        </div>
+      <div className="text-center py-12">
+        <BarChart3 className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+        <h3 className="text-lg font-medium text-foreground mb-2">No data available</h3>
+        <p className="text-muted-foreground">Create some todos to see your reports!</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
+    <div className="min-h-full bg-background">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Activity Reports</h1>
-          <p className="text-gray-600 mt-2">Track your productivity and task completion</p>
-        </div>
-        
-        <div className="flex items-center space-x-4">
-          {/* Time Range Filter */}
-          <div className="flex bg-gray-100 rounded-lg p-1">
-            {(['week', 'month', 'quarter', 'year'] as TimeRange[]).map(range => (
-              <button
-                key={range}
-                onClick={() => setTimeRange(range)}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors capitalize ${
-                  timeRange === range 
-                    ? 'bg-white text-blue-600 shadow-sm' 
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                {range}
-              </button>
-            ))}
-          </div>
-          
+      <div className="bg-background shadow-sm border-b border-border px-4 py-4">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold text-foreground">Reports</h2>
           <button
             onClick={exportReport}
-            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            className="mobile-button bg-primary text-primary-foreground hover:bg-primary/90 focus-ring"
           >
             <Download className="w-4 h-4 mr-2" />
             Export
           </button>
         </div>
-      </div>
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <div className="flex items-center">
-            <div className="p-3 bg-blue-100 rounded-lg">
-              <Calendar className="w-6 h-6 text-blue-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Todos</p>
-              <p className="text-2xl font-bold text-gray-900">{reportData.totalTodos}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <div className="flex items-center">
-            <div className="p-3 bg-green-100 rounded-lg">
-              <CheckCircle2 className="w-6 h-6 text-green-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Completed</p>
-              <p className="text-2xl font-bold text-gray-900">{reportData.completedTodos}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <div className="flex items-center">
-            <div className="p-3 bg-yellow-100 rounded-lg">
-              <Clock className="w-6 h-6 text-yellow-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Pending</p>
-              <p className="text-2xl font-bold text-gray-900">{reportData.pendingTodos}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <div className="flex items-center">
-            <div className="p-3 bg-purple-100 rounded-lg">
-              <TrendingUp className="w-6 h-6 text-purple-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Completion Rate</p>
-              <p className="text-2xl font-bold text-gray-900">{reportData.completionRate.toFixed(1)}%</p>
-            </div>
-          </div>
+        {/* Time Filter */}
+        <div className="flex space-x-1 bg-muted rounded-lg p-1">
+          {[
+            { key: 'week', label: 'This Week' },
+            { key: 'month', label: 'This Month' },
+            { key: 'all', label: 'All Time' }
+          ].map(filter => (
+            <button
+              key={filter.key}
+              onClick={() => setTimeFilter(filter.key as TimeFilter)}
+              className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
+                timeFilter === filter.key
+                  ? 'bg-background text-primary shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {filter.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Detailed Analytics */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        {/* Task Statistics */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-6">Task Statistics</h3>
+      <div className="p-4 space-y-6">
+        {/* Overview Cards */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="macos-card p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Target className="w-5 h-5 text-primary" />
+              </div>
+              <span className="text-2xl font-bold text-foreground">{reportData.totalTodos}</span>
+            </div>
+            <div className="text-sm text-muted-foreground">Total Todos</div>
+          </div>
+
+          <div className="macos-card p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <CheckCircle2 className="w-5 h-5 text-green-600" />
+              </div>
+              <span className="text-2xl font-bold text-foreground">{reportData.completedTodos}</span>
+            </div>
+            <div className="text-sm text-muted-foreground">Completed</div>
+          </div>
+
+          <div className="macos-card p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-orange-100 rounded-lg">
+                <Clock className="w-5 h-5 text-orange-600" />
+              </div>
+              <span className="text-2xl font-bold text-foreground">{reportData.pendingTodos}</span>
+            </div>
+            <div className="text-sm text-muted-foreground">Pending</div>
+          </div>
+
+          <div className="macos-card p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <Bell className="w-5 h-5 text-purple-600" />
+              </div>
+              <span className="text-2xl font-bold text-foreground">{reportData.alarmEnabledTodos}</span>
+            </div>
+            <div className="text-sm text-muted-foreground">With Alarms</div>
+          </div>
+        </div>
+
+        {/* Progress Stats */}
+        <div className="macos-card p-6">
+          <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center">
+            <TrendingUp className="w-5 h-5 mr-2 text-primary" />
+            Progress Overview
+          </h3>
+          
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Total Tasks</span>
-              <span className="font-semibold">{reportData.totalTasks}</span>
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium text-foreground">Todo Completion</span>
+                <span className="text-sm text-muted-foreground">{reportData.completionRate.toFixed(1)}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-primary h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${reportData.completionRate}%` }}
+                ></div>
+              </div>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Completed Tasks</span>
-              <span className="font-semibold text-green-600">{reportData.completedTasks}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Task Completion Rate</span>
-              <span className="font-semibold">{reportData.taskCompletionRate.toFixed(1)}%</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Avg Tasks per Todo</span>
-              <span className="font-semibold">{reportData.averageTasksPerTodo.toFixed(1)}</span>
+
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium text-foreground">Task Completion</span>
+                <span className="text-sm text-muted-foreground">{reportData.taskCompletionRate.toFixed(1)}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${reportData.taskCompletionRate}%` }}
+                ></div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Alarm Statistics */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-6">Alarm Statistics</h3>
+        {/* Activity Chart */}
+        <div className="macos-card p-6">
+          <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center">
+            <Activity className="w-5 h-5 mr-2 text-green-600" />
+            Daily Activity
+          </h3>
+          
+          <div className="space-y-3">
+            {reportData.todosByDay.slice(-7).map((day, index) => (
+              <div key={index} className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground w-12">{day.date}</span>
+                <div className="flex-1 mx-3">
+                  <div className="flex space-x-1">
+                    {Array.from({ length: Math.max(day.count, 1) }, (_, i) => (
+                      <div
+                        key={i}
+                        className={`h-2 rounded ${
+                          i < day.completed 
+                            ? 'bg-green-500' 
+                            : day.count > 0 
+                              ? 'bg-gray-300' 
+                              : 'bg-muted'
+                        }`}
+                        style={{ width: `${100 / Math.max(day.count, 1)}%` }}
+                      ></div>
+                    ))}
+                  </div>
+                </div>
+                <span className="text-sm text-muted-foreground w-8 text-right">
+                  {day.count}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Insights */}
+        <div className="macos-card p-6">
+          <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center">
+            <Award className="w-5 h-5 mr-2 text-yellow-600" />
+            Insights
+          </h3>
+          
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Alarm Enabled Todos</span>
-              <span className="font-semibold">{reportData.alarmEnabledTodos}</span>
+            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+              <div>
+                <div className="text-sm font-medium text-blue-900">Most Productive Day</div>
+                <div className="text-sm text-blue-700">{reportData.mostProductiveDay}</div>
+              </div>
+              <Calendar className="w-5 h-5 text-primary" />
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Alarm Usage Rate</span>
-              <span className="font-semibold">
-                {reportData.totalTodos > 0 ? ((reportData.alarmEnabledTodos / reportData.totalTodos) * 100).toFixed(1) : 0}%
-              </span>
+
+            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+              <div>
+                <div className="text-sm font-medium text-green-900">Most Productive Hour</div>
+                <div className="text-sm text-green-700">{reportData.mostProductiveHour}:00</div>
+              </div>
+              <Clock className="w-5 h-5 text-green-600" />
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Most Productive Day</span>
-              <span className="font-semibold">{reportData.mostProductiveDay}</span>
+
+            <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+              <div>
+                <div className="text-sm font-medium text-purple-900">Average Tasks per Todo</div>
+                <div className="text-sm text-purple-700">{reportData.averageTasksPerTodo.toFixed(1)}</div>
+              </div>
+              <Target className="w-5 h-5 text-purple-600" />
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Todos by Day of Week */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-6">Todos by Day of Week</h3>
-          <div className="space-y-3">
-            {Object.entries(reportData.todosByDay)
-              .sort(([,a], [,b]) => b - a)
-              .map(([day, count]) => (
-                <div key={day} className="flex items-center">
-                  <div className="w-20 text-sm text-gray-600">{day}</div>
-                  <div className="flex-1 mx-4">
-                    <div className="bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                        style={{ 
-                          width: `${(count / Math.max(...Object.values(reportData.todosByDay))) * 100}%` 
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-                  <div className="w-8 text-sm font-semibold text-gray-900">{count}</div>
-                </div>
-              ))}
-          </div>
-        </div>
-
-        {/* Todos by Hour */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-6">Todos by Hour</h3>
-          <div className="space-y-3">
-            {Object.entries(reportData.todosByHour)
-              .sort(([a], [b]) => parseInt(a) - parseInt(b))
-              .slice(0, 8)
-              .map(([hour, count]) => (
-                <div key={hour} className="flex items-center">
-                  <div className="w-12 text-sm text-gray-600">{hour}:00</div>
-                  <div className="flex-1 mx-4">
-                    <div className="bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-green-600 h-2 rounded-full transition-all duration-300"
-                        style={{ 
-                          width: `${(count / Math.max(...Object.values(reportData.todosByHour))) * 100}%` 
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-                  <div className="w-8 text-sm font-semibold text-gray-900">{count}</div>
-                </div>
-              ))}
+        {/* Task Breakdown */}
+        <div className="macos-card p-6">
+          <h3 className="text-lg font-semibold text-foreground mb-4">Task Breakdown</h3>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div className="text-center p-4 bg-background rounded-lg">
+              <div className="text-2xl font-bold text-foreground">{reportData.totalTasks}</div>
+              <div className="text-sm text-muted-foreground">Total Tasks</div>
+            </div>
+            <div className="text-center p-4 bg-background rounded-lg">
+              <div className="text-2xl font-bold text-foreground">{reportData.completedTasks}</div>
+              <div className="text-sm text-muted-foreground">Completed Tasks</div>
+            </div>
           </div>
         </div>
       </div>
