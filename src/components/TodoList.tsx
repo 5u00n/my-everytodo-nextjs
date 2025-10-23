@@ -224,16 +224,24 @@ export default function TodoList() {
       updatedAt: nowTimestamp,
     };
 
-    // Only set completedAt if completing the todo, remove it if uncompleting
+    // Only set completedAt if completing the todo
     if (!todo.isCompleted) {
       updatedFields.completedAt = nowTimestamp;
-    } else {
-      // When uncompleting, we need to remove the completedAt field
-      updatedFields.completedAt = undefined;
     }
 
     const todoRef = ref(database, `todos/${user.id}/${todoId}`);
-    await update(todoRef, updatedFields);
+    
+    if (todo.isCompleted) {
+      // When uncompleting, we need to remove the completedAt field
+      const { completedAt, ...fieldsToUpdate } = updatedFields;
+      await update(todoRef, fieldsToUpdate);
+      // Remove the completedAt field from the database
+      const completedAtRef = ref(database, `todos/${user.id}/${todoId}/completedAt`);
+      await remove(completedAtRef);
+    } else {
+      // When completing, just update normally
+      await update(todoRef, updatedFields);
+    }
   };
 
   const getFilteredTodos = () => {
