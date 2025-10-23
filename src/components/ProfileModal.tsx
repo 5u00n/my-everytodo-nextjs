@@ -19,6 +19,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { VERSION_INFO } from '@/lib/version';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -44,9 +45,11 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const [resetProgress, setResetProgress] = useState<string>('');
 
   // App version info
-  const appVersion = process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0';
-  const buildDate = process.env.NEXT_PUBLIC_BUILD_DATE || new Date().toISOString();
-  const nodeVersion = process.env.NEXT_PUBLIC_NODE_VERSION || 'Unknown';
+  const appVersion = VERSION_INFO.appVersion;
+  const buildDate = VERSION_INFO.buildTimestamp;
+  const nodeVersion = VERSION_INFO.nodeVersion;
+  const buildNumber = VERSION_INFO.buildNumber;
+  const pwaVersion = VERSION_INFO.pwaVersion;
 
   useEffect(() => {
     if (isOpen && user) {
@@ -307,8 +310,16 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             </h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Version:</span>
+                <span className="text-muted-foreground">App Version:</span>
                 <span className="text-foreground font-mono">{appVersion}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Build Number:</span>
+                <span className="text-foreground font-mono">{buildNumber}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">PWA Version:</span>
+                <span className="text-foreground font-mono">{pwaVersion}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Build Date:</span>

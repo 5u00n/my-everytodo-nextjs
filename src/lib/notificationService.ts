@@ -192,24 +192,51 @@ class NotificationService {
     try {
       const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
       
-      // Create a more persistent alarm sound
+      // Create a continuous alarm sound (5 seconds for notification)
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
       
       oscillator.connect(gainNode);
       gainNode.connect(audioContext.destination);
       
-      // Create a more urgent alarm pattern
-      const frequencies = [800, 600, 800, 600, 800];
-      frequencies.forEach((freq, index) => {
-        oscillator.frequency.setValueAtTime(freq, audioContext.currentTime + index * 0.2);
-      });
+      // Create continuous pulsing pattern for 5 seconds
+      const duration = 5; // 5 seconds for notification
+      const patternDuration = 2; // 2-second pattern
+      const patterns = Math.ceil(duration / patternDuration);
       
-      gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1);
+      const baseFreq = 800;
+      const highFreq = 1000;
+      
+      for (let i = 0; i < patterns; i++) {
+        const startTime = audioContext.currentTime + (i * patternDuration);
+        
+        // High-low-high pattern
+        oscillator.frequency.setValueAtTime(highFreq, startTime);
+        oscillator.frequency.setValueAtTime(baseFreq, startTime + 0.5);
+        oscillator.frequency.setValueAtTime(highFreq, startTime + 1);
+        oscillator.frequency.setValueAtTime(baseFreq, startTime + 1.5);
+        
+        // Volume pulsing
+        gainNode.gain.setValueAtTime(0.7, startTime);
+        gainNode.gain.setValueAtTime(0.5, startTime + 0.5);
+        gainNode.gain.setValueAtTime(0.7, startTime + 1);
+        gainNode.gain.setValueAtTime(0.5, startTime + 1.5);
+      }
       
       oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 1);
+      oscillator.stop(audioContext.currentTime + duration);
+      
+      // Add continuous vibration pattern
+      if ('vibrate' in navigator) {
+        const vibrationPattern = [];
+        const vibrationCycles = Math.ceil(duration / 2); // 2-second vibration cycles
+        
+        for (let i = 0; i < vibrationCycles; i++) {
+          vibrationPattern.push(200, 100, 200, 100, 200, 100, 200, 100);
+        }
+        
+        navigator.vibrate(vibrationPattern);
+      }
     } catch (error) {
       console.log('Audio alarm not supported:', error);
     }

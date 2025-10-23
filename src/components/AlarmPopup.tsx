@@ -123,28 +123,59 @@ export default function AlarmPopup({
         await context.resume();
       }
 
+      // Calculate how long each repeat should play
+      const repeatDurationMs = (duration * 60 * 1000) / repeatCount; // Duration per repeat in ms
+      const repeatDurationSeconds = repeatDurationMs / 1000;
+      
       const oscillator = context.createOscillator();
       const gainNode = context.createGain();
       
       oscillator.connect(gainNode);
       gainNode.connect(context.destination);
       
-      // Create urgent alarm pattern
-      const frequencies = [800, 600, 800, 600, 800, 1000];
-      frequencies.forEach((freq, index) => {
-        oscillator.frequency.setValueAtTime(freq, context.currentTime + index * 0.15);
-      });
+      // Create continuous alarm pattern for the full repeat duration
+      const baseFreq = 800;
+      const highFreq = 1000;
       
-      gainNode.gain.setValueAtTime(0.6, context.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.9);
+      // Create a pulsing pattern that repeats every 2 seconds
+      const patternDuration = 2; // 2-second pattern
+      const patterns = Math.ceil(repeatDurationSeconds / patternDuration);
+      
+      for (let i = 0; i < patterns; i++) {
+        const startTime = context.currentTime + (i * patternDuration);
+        
+        // High-low-high pattern
+        oscillator.frequency.setValueAtTime(highFreq, startTime);
+        oscillator.frequency.setValueAtTime(baseFreq, startTime + 0.5);
+        oscillator.frequency.setValueAtTime(highFreq, startTime + 1);
+        oscillator.frequency.setValueAtTime(baseFreq, startTime + 1.5);
+        
+        // Volume pulsing
+        gainNode.gain.setValueAtTime(0.7, startTime);
+        gainNode.gain.setValueAtTime(0.5, startTime + 0.5);
+        gainNode.gain.setValueAtTime(0.7, startTime + 1);
+        gainNode.gain.setValueAtTime(0.5, startTime + 1.5);
+      }
       
       oscillator.start(context.currentTime);
-      oscillator.stop(context.currentTime + 0.9);
+      oscillator.stop(context.currentTime + repeatDurationSeconds);
       
       setIsPlaying(true);
       
-      // Stop playing indicator after sound
-      setTimeout(() => setIsPlaying(false), 1000);
+      // Stop playing indicator after this repeat
+      setTimeout(() => setIsPlaying(false), repeatDurationMs);
+      
+      // Add continuous vibration pattern
+      if ('vibrate' in navigator) {
+        const vibrationPattern = [];
+        const vibrationCycles = Math.ceil(repeatDurationSeconds / 2); // 2-second vibration cycles
+        
+        for (let i = 0; i < vibrationCycles; i++) {
+          vibrationPattern.push(200, 100, 200, 100, 200, 100, 200, 100);
+        }
+        
+        navigator.vibrate(vibrationPattern);
+      }
     } catch (error) {
       console.log('Audio alarm not supported:', error);
     }

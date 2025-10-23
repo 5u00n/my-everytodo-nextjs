@@ -33,6 +33,7 @@ import UpdateNotification from './UpdateNotification';
 import AlarmPopup from './AlarmPopup';
 import PushNotificationTest from './PushNotificationTest';
 import ProfileModal from './ProfileModal';
+import VersionDisplay from './VersionDisplay';
 
 type View = 'home' | 'todos' | 'calendar' | 'reports';
 
@@ -451,7 +452,10 @@ export default function Dashboard() {
       {/* Header */}
       <div className="bg-background border-b border-border shadow-sm safe-top">
         <div className="flex justify-between items-center px-4 py-3">
-          <h1 className="text-xl md:text-2xl font-bold text-foreground">EveryTodo</h1>
+          <div className="flex items-center space-x-3">
+            <h1 className="text-xl md:text-2xl font-bold text-foreground">EveryTodo</h1>
+            <VersionDisplay showDetails={false} />
+          </div>
                   <div className="flex items-center space-x-3">
                     <button
                       onClick={() => setShowProfileModal(true)}
