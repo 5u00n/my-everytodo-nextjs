@@ -3,6 +3,16 @@
 import notificationService from './notificationService';
 import pushNotificationService from './pushNotificationService';
 
+// Extended notification options with vibrate and actions support
+interface ExtendedNotificationOptions extends NotificationOptions {
+  vibrate?: number[];
+  actions?: Array<{
+    action: string;
+    title: string;
+    icon?: string;
+  }>;
+}
+
 interface Alarm {
   id: string;
   todoId: string;
@@ -71,7 +81,7 @@ class AlarmManager {
     
     // Show push notification (works even when app is closed)
     try {
-      await pushNotificationService.showLocalNotification(`🔔 ${alarm.title}`, {
+      const notificationOptions: ExtendedNotificationOptions = {
         body: alarm.body || 'Your todo alarm is ringing!',
         requireInteraction: true,
         vibrate: [200, 100, 200, 100, 200, 100, 200],
@@ -87,7 +97,9 @@ class AlarmManager {
           type: 'alarm',
           timestamp: Date.now()
         }
-      });
+      };
+      
+      await pushNotificationService.showLocalNotification(`🔔 ${alarm.title}`, notificationOptions);
     } catch (error) {
       console.error('Error showing push notification:', error);
       

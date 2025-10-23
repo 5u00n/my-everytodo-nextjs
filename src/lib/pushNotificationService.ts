@@ -125,12 +125,12 @@ class PushNotificationService {
   }
 
   // Show local notification
-  async showLocalNotification(title: string, options: NotificationOptions = {}): Promise<void> {
+  async showLocalNotification(title: string, options: any = {}): Promise<void> {
     if (!this.registration) {
       throw new Error('Push service not initialized');
     }
 
-    const defaultOptions: NotificationOptions = {
+    const defaultOptions: any = {
       body: '',
       icon: '/icon-192.svg',
       badge: '/icon-192.svg',
@@ -213,7 +213,7 @@ class PushNotificationService {
   }
 
   // Convert VAPID key
-  private urlBase64ToUint8Array(base64String: string): Uint8Array {
+  private urlBase64ToUint8Array(base64String: string): ArrayBuffer {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
     const base64 = (base64String + padding)
       .replace(/-/g, '+')
@@ -225,11 +225,11 @@ class PushNotificationService {
     for (let i = 0; i < rawData.length; ++i) {
       outputArray[i] = rawData.charCodeAt(i);
     }
-    return outputArray;
+    return outputArray.buffer;
   }
 
   // Handle notification click
-  static handleNotificationClick(event: NotificationEvent): void {
+  static handleNotificationClick(event: any): void {
     event.notification.close();
 
     const data = event.notification.data;
