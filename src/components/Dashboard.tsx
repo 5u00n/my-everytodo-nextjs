@@ -259,7 +259,7 @@ export default function Dashboard() {
                   if (isIOS) {
                     alert('Install EveryTodo as an App on iOS:\n\n1. Tap the Share button at the bottom\n2. Scroll down and tap "Add to Home Screen"\n3. Tap "Add" to install as a native app\n\nThis will install EveryTodo as a proper app with its own icon!');
                   } else if (isAndroid) {
-                    alert('Install EveryTodo as an App on Android:\n\n1. Tap the menu (three dots) in your browser\n2. Look for "Install app" or "Add to Home screen"\n3. Tap "Install" to install as a PWA app\n\nThis will install EveryTodo as a native app with its own icon!');
+                    alert('Install EveryTodo as an App on Android:\n\n1. Tap the menu (three dots) in your browser\n2. Look for "Install app" or "Add to Home screen"\n3. Tap it to install as a PWA app\n\nNote: Even though it says "Add to Home screen", it installs as a full native app with its own icon!');
                   } else {
                     alert('Install EveryTodo as an App on your computer:\n\n1. Look for the install icon in your browser\'s address bar\n2. Click it and select "Install" to install as a PWA app\n\nThis will install EveryTodo as a native desktop application!');
                   }

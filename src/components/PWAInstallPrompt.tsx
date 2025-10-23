@@ -114,7 +114,8 @@ export default function PWAInstallPrompt() {
 For Android (Chrome/Edge):
 1. Tap the menu (three dots) in your browser
 2. Look for "Install app" or "Add to Home screen"
-3. Tap "Install" to install as a PWA app
+3. Tap it to install as a PWA app
+   (Even though it says "Add to Home screen", it installs as a full app!)
 
 For iPhone/iPad (Safari):
 1. Tap the Share button at the bottom
@@ -129,7 +130,8 @@ The app will work like a native app with its own icon!`;
 For Android (Chrome/Edge):
 1. Tap the menu (three dots) in your browser
 2. Look for "Install app" or "Add to Home screen"
-3. Tap "Install" to install as a PWA app
+3. Tap it to install as a PWA app
+   (Even though it says "Add to Home screen", it installs as a full app!)
 
 For iPad (Safari):
 1. Tap the Share button at the bottom
