@@ -138,7 +138,7 @@ export default function AnimatedHero({
     
     return {
       backgroundImage: `${colorOverlay}, url('${backgroundImage}')`,
-      backgroundSize: 'cover',
+      backgroundSize: '120% auto',
       backgroundPosition: 'center center',
       backgroundRepeat: 'no-repeat',
       animation: 'panZoom 60s ease-in-out infinite'
@@ -235,47 +235,47 @@ export default function AnimatedHero({
         @keyframes panZoom {
           0% { 
             background-position: 0% 50%;
-            background-size: cover;
+            background-size: 120% auto;
             filter: brightness(1) contrast(1);
           }
           12.5% { 
-            background-position: 25% 25%;
-            background-size: cover;
+            background-position: 15% 30%;
+            background-size: 130% auto;
             filter: brightness(1.02) contrast(1.02);
           }
           25% { 
-            background-position: 50% 0%;
-            background-size: cover;
+            background-position: 30% 20%;
+            background-size: 140% auto;
             filter: brightness(1.05) contrast(1.05);
           }
           37.5% { 
-            background-position: 75% 25%;
-            background-size: cover;
+            background-position: 50% 30%;
+            background-size: 130% auto;
             filter: brightness(1.02) contrast(1.02);
           }
           50% { 
-            background-position: 100% 50%;
-            background-size: cover;
+            background-position: 70% 50%;
+            background-size: 120% auto;
             filter: brightness(1) contrast(1);
           }
           62.5% { 
-            background-position: 75% 75%;
-            background-size: cover;
+            background-position: 85% 70%;
+            background-size: 130% auto;
             filter: brightness(1.02) contrast(1.02);
           }
           75% { 
-            background-position: 50% 100%;
-            background-size: cover;
+            background-position: 70% 80%;
+            background-size: 140% auto;
             filter: brightness(1.05) contrast(1.05);
           }
           87.5% { 
-            background-position: 25% 75%;
-            background-size: cover;
+            background-position: 30% 70%;
+            background-size: 130% auto;
             filter: brightness(1.02) contrast(1.02);
           }
           100% { 
             background-position: 0% 50%;
-            background-size: cover;
+            background-size: 120% auto;
             filter: brightness(1) contrast(1);
           }
         }
