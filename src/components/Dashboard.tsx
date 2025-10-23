@@ -23,11 +23,13 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import TaskDetailModal from './TaskDetailModal';
 import TodoModal from './TodoModal';
 import { format, isToday, isTomorrow, addDays, isWithinInterval } from 'date-fns';
+import alarmManager from '@/lib/alarmManager';
 import TodoList from './TodoList';
 import CalendarView from './CalendarView';
 import ReportsView from './ReportsView';
 import PWAInstallPrompt from './PWAInstallPrompt';
 import UpdateNotification from './UpdateNotification';
+import AlarmPopup from './AlarmPopup';
 
 type View = 'home' | 'todos' | 'calendar' | 'reports';
 
@@ -40,12 +42,26 @@ export default function Dashboard() {
   const [selectedTask, setSelectedTask] = useState<Todo | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
+  
+  // Alarm states
+  const [activeAlarm, setActiveAlarm] = useState<{
+    id: string;
+    title: string;
+    body?: string;
+    todoId: string;
+  } | null>(null);
+  const [showAlarmPopup, setShowAlarmPopup] = useState(false);
 
   useEffect(() => {
     if (!user || !database) {
       // Use setTimeout to avoid synchronous setState in effect
       setTimeout(() => setLoading(false), 0);
       return;
+    }
+
+    // Request notification permission for alarms
+    if (alarmManager.isNotificationSupported()) {
+      alarmManager.requestPermission();
     }
 
     const todosRef = ref(database, `todos/${user.id}`);
@@ -57,6 +73,9 @@ export default function Dashboard() {
           ...todosData[key]
         }));
         setTodos(todosList);
+        
+        // Schedule alarms for todos with alarm settings
+        scheduleAlarmsForTodos(todosList);
       } else {
         setTodos([]);
       }
@@ -69,6 +88,40 @@ export default function Dashboard() {
     return () => off(todosRef, 'value', unsubscribe);
   }, [user]);
 
+  // Schedule alarms for todos
+  const scheduleAlarmsForTodos = (todosList: Todo[]) => {
+    // Clear existing alarms
+    alarmManager.clearAllAlarms();
+    
+    todosList.forEach(todo => {
+      if (todo.alarmSettings?.enabled && !todo.isCompleted) {
+        // Use scheduledTime for alarm timing
+        const alarmTime = todo.scheduledTime;
+        const now = Date.now();
+        
+        // Only schedule if alarm time is in the future
+        if (alarmTime > now) {
+          alarmManager.scheduleAlarm(
+            todo.id,
+            todo.title,
+            alarmTime,
+            todo.description,
+            (alarm) => {
+              // Show alarm popup when triggered
+              setActiveAlarm({
+                id: alarm.id,
+                title: alarm.title,
+                body: alarm.body,
+                todoId: alarm.todoId
+              });
+              setShowAlarmPopup(true);
+            }
+          );
+        }
+      }
+    });
+  };
+
   const openTaskDetail = (todo: Todo) => {
     setSelectedTask(todo);
     setShowTaskDetailModal(true);
@@ -77,6 +130,54 @@ export default function Dashboard() {
   const closeTaskDetail = () => {
     setSelectedTask(null);
     setShowTaskDetailModal(false);
+  };
+
+  // Alarm handling functions
+  const handleAlarmComplete = async (todoId: string) => {
+    if (!user || !database) return;
+    
+    try {
+      const todoRef = ref(database, `todos/${user.id}/${todoId}`);
+      await update(todoRef, { isCompleted: true, completedAt: Date.now() });
+      
+      // Cancel any remaining alarms for this todo
+      alarmManager.cancelAlarmsForTodo(todoId);
+      
+      console.log('Todo marked as complete from alarm');
+    } catch (error) {
+      console.error('Error completing todo from alarm:', error);
+    }
+  };
+
+  const handleAlarmSnooze = (todoId: string, minutes: number) => {
+    // Find the todo and reschedule its alarm
+    const todo = todos.find(t => t.id === todoId);
+    if (todo && todo.alarmSettings?.enabled) {
+      const newAlarmTime = Date.now() + (minutes * 60 * 1000);
+      
+      alarmManager.scheduleAlarm(
+        todoId,
+        todo.title,
+        newAlarmTime,
+        todo.description,
+        (alarm) => {
+          setActiveAlarm({
+            id: alarm.id,
+            title: alarm.title,
+            body: alarm.body,
+            todoId: alarm.todoId
+          });
+          setShowAlarmPopup(true);
+        }
+      );
+      
+      console.log(`Alarm snoozed for ${minutes} minutes`);
+    }
+  };
+
+  const handleAlarmDismiss = () => {
+    setShowAlarmPopup(false);
+    setActiveAlarm(null);
   };
 
   const toggleTodo = async (todoId: string) => {
@@ -113,9 +214,35 @@ export default function Dashboard() {
       // Remove the completedAt field from the database
       const completedAtRef = ref(database, `todos/${user.id}/${todoId}/completedAt`);
       await remove(completedAtRef);
+      
+      // Reschedule alarms when uncompleting
+      if (todo.alarmSettings?.enabled) {
+        const alarmTime = todo.scheduledTime;
+        const now = Date.now();
+        if (alarmTime > now) {
+          alarmManager.scheduleAlarm(
+            todo.id,
+            todo.title,
+            alarmTime,
+            todo.description,
+            (alarm) => {
+              setActiveAlarm({
+                id: alarm.id,
+                title: alarm.title,
+                body: alarm.body,
+                todoId: alarm.todoId
+              });
+              setShowAlarmPopup(true);
+            }
+          );
+        }
+      }
     } else {
       // When completing, just update normally
       await update(todoRef, updatedFields);
+      
+      // Cancel alarms when completing
+      alarmManager.cancelAlarmsForTodo(todoId);
     }
   };
 
@@ -335,6 +462,19 @@ export default function Dashboard() {
         title="Edit Todo"
         initialData={editingTodo}
       />
+      
+      {/* Alarm Popup */}
+      {activeAlarm && (
+        <AlarmPopup
+          isVisible={showAlarmPopup}
+          title={activeAlarm.title}
+          body={activeAlarm.body}
+          todoId={activeAlarm.todoId}
+          onDismiss={handleAlarmDismiss}
+          onComplete={handleAlarmComplete}
+          onSnooze={handleAlarmSnooze}
+        />
+      )}
     </div>
   );
 }
