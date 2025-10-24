@@ -107,13 +107,16 @@ export default function AlarmPopup({
 
   // Stop the alarm sequence
   const stopAlarmSequence = () => {
+    console.log('Stopping alarm sequence...');
     if (alarmInterval) {
+      console.log('Clearing alarm interval');
       clearTimeout(alarmInterval);
       setAlarmInterval(null);
     }
     stopAlarmSound();
     stopVibration();
     setIsPlaying(false);
+    console.log('Alarm sequence stopped');
   };
 
   // Stop the current alarm sound
@@ -387,9 +390,12 @@ export default function AlarmPopup({
   };
 
   const handleDismiss = () => {
+    console.log('AlarmPopup handleDismiss called');
     setUserHasInteracted(true); // Enable vibration for future interactions
     stopAlarmSequence(); // Stop alarm sound
+    console.log('Alarm sequence stopped');
     if (onDismiss) {
+      console.log('Calling onDismiss callback');
       onDismiss();
     }
   };

@@ -239,12 +239,15 @@ export default function Dashboard() {
 
   // Alarm popup handlers
   const handleAlarmDismiss = () => {
+    console.log('Dismiss clicked, todoId:', alarmData?.todoId);
     // Cancel all alarms for this todo to stop alarm completely
     if (alarmData?.todoId) {
-      alarmManager.cancelAlarmsForTodo(alarmData.todoId);
+      const cancelled = alarmManager.cancelAlarmsForTodo(alarmData.todoId);
+      console.log('Cancelled alarms:', cancelled);
     }
     setShowAlarmPopup(false);
     setAlarmData(null);
+    console.log('Alarm popup dismissed');
   };
 
   const handleAlarmComplete = (todoId: string) => {
