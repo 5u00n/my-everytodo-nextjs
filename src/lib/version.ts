@@ -1,10 +1,10 @@
 // Auto-generated version file
 // Do not edit manually - this file is updated on each build
 
-export const APP_VERSION = '0.1.59';
-export const BUILD_TIMESTAMP = '2025-10-24T11:31:10.251Z';
-export const BUILD_NUMBER = 1761305470251;
-export const PWA_VERSION = '1761305470251';
+export const APP_VERSION = '0.1.62';
+export const BUILD_TIMESTAMP = '2025-10-24T11:39:44.484Z';
+export const BUILD_NUMBER = 1761305984485;
+export const PWA_VERSION = '1761305984485';
 export const NODE_VERSION = process.version;
 
 // Version info object

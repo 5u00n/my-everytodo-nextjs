@@ -67,8 +67,14 @@ class NotificationService {
 
       const notification = new Notification(title, notificationOptions);
 
-      // Play audio notification for PC
-      this.playNotificationSound();
+      // Play appropriate sound based on notification type
+      if (options.data?.action === 'alarm') {
+        // Use alarm sound for alarm notifications
+        this.playAlarmSound();
+      } else {
+        // Use regular notification sound for other notifications
+        this.playNotificationSound();
+      }
 
       // Handle notification click
       notification.onclick = (event) => {

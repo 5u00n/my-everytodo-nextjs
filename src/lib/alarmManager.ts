@@ -118,6 +118,22 @@ class AlarmManager {
               timestamp: Date.now()
             }
           });
+          
+          // Also trigger sound and vibration from notification service for mobile
+          console.log('Triggering mobile alarm sound and vibration');
+          await notificationService.showNotification(alarm.title, {
+            body: alarm.body || 'Your todo alarm is ringing!',
+            requireInteraction: true,
+            vibrate: [300, 200, 300, 200, 300, 200, 300, 200, 300],
+            tag: alarm.id,
+            silent: false,
+            renotify: true,
+            data: {
+              todoId: alarm.todoId,
+              alarmId: alarm.id,
+              action: 'alarm'
+            }
+          });
         } else {
           // Push service not ready, fall back to regular notification
           console.log('Push service not ready, falling back to regular notification');

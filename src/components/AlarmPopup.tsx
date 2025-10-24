@@ -34,6 +34,7 @@ export default function AlarmPopup({
   const [currentRepeat, setCurrentRepeat] = useState<number>(0);
   const [activeOscillator, setActiveOscillator] = useState<OscillatorNode | null>(null);
   const [vibrationId, setVibrationId] = useState<number | null>(null);
+  const [userHasInteracted, setUserHasInteracted] = useState(false);
 
   useEffect(() => {
     if (isVisible) {
@@ -132,9 +133,13 @@ export default function AlarmPopup({
       clearTimeout(vibrationId);
       setVibrationId(null);
     }
-    // Try to stop any ongoing vibration
-    if ('vibrate' in navigator) {
-      navigator.vibrate(0); // Stop vibration
+    // Try to stop any ongoing vibration (only if user has interacted)
+    if ('vibrate' in navigator && userHasInteracted) {
+      try {
+        navigator.vibrate(0); // Stop vibration
+      } catch (error) {
+        // Ignore vibration errors
+      }
     }
   };
 
@@ -209,21 +214,25 @@ export default function AlarmPopup({
         setActiveOscillator(null);
       }, repeatDurationMs);
       
-      // Enhanced vibration pattern for locked phones
-      if ('vibrate' in navigator && !isMuted) {
+      // Enhanced vibration pattern for locked phones (only after user interaction)
+      if ('vibrate' in navigator && !isMuted && userHasInteracted) {
         const startVibration = () => {
-          // More aggressive vibration pattern for locked phones
-          const vibrationPattern = [300, 200, 300, 200, 300, 200, 300, 200, 300];
-          navigator.vibrate(vibrationPattern);
-          
-          // Schedule next vibration cycle
-          const vibrationTimeout = setTimeout(() => {
-            if (!isMuted) {
-              startVibration();
-            }
-          }, 2000); // Every 2 seconds
-          
-          setVibrationId(vibrationTimeout as unknown as number);
+          try {
+            // More aggressive vibration pattern for locked phones
+            const vibrationPattern = [300, 200, 300, 200, 300, 200, 300, 200, 300];
+            navigator.vibrate(vibrationPattern);
+            
+            // Schedule next vibration cycle
+            const vibrationTimeout = setTimeout(() => {
+              if (!isMuted) {
+                startVibration();
+              }
+            }, 2000); // Every 2 seconds
+            
+            setVibrationId(vibrationTimeout as unknown as number);
+          } catch (error) {
+            // Ignore vibration errors
+          }
         };
         
         startVibration();
@@ -260,6 +269,9 @@ export default function AlarmPopup({
     const newMutedState = !isMuted;
     setIsMuted(newMutedState);
     
+    // Mark user as interacted for vibration
+    setUserHasInteracted(true);
+    
     if (newMutedState) {
       // Stop alarm when muting
       stopAlarmSequence();
@@ -269,10 +281,19 @@ export default function AlarmPopup({
     }
   };
 
+  // Handle user interaction to enable vibration
+  const handleUserInteraction = () => {
+    setUserHasInteracted(true);
+  };
+
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+    <div 
+      className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4"
+      onClick={handleUserInteraction}
+      onTouchStart={handleUserInteraction}
+    >
       <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 rounded-3xl shadow-2xl max-w-md w-full border border-gray-200/50 dark:border-gray-700/50 overflow-hidden">
         {/* Elegant Header with gradient and glow effect */}
         <div className="relative bg-gradient-to-r from-red-500 via-red-600 to-red-700 text-white p-8 text-center overflow-hidden">

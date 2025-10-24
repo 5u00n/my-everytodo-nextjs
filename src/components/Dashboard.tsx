@@ -21,6 +21,7 @@ import ReportsView from './ReportsView';
 import ProfileModal from './ProfileModal';
 import UserAvatar from './UserAvatar';
 import VersionDisplay from './VersionDisplay';
+import AlarmPopup from './AlarmPopup';
 import { 
   Home, 
   Calendar, 
@@ -45,6 +46,8 @@ export default function Dashboard() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null);
   const [isPWAInstalled, setIsPWAInstalled] = useState(false);
+  const [showAlarmPopup, setShowAlarmPopup] = useState(false);
+  const [alarmData, setAlarmData] = useState<{title: string, body?: string, todoId?: string} | null>(null);
 
   // Check if PWA is installed
   useEffect(() => {
@@ -132,7 +135,15 @@ export default function Dashboard() {
             alarmTime,
             todo.description,
             (alarm) => {
-              // Show notification when alarm triggers
+              // Show alarm popup with sound and vibration
+              setAlarmData({
+                title: alarm.title,
+                body: alarm.body,
+                todoId: alarm.todoId
+              });
+              setShowAlarmPopup(true);
+              
+              // Also show notification as backup
               showNotification(`🔔 ${alarm.title}`, { 
                 type: 'info',
                 duration: 0 // Don't auto-dismiss alarm notifications
@@ -200,6 +211,44 @@ export default function Dashboard() {
   // Close todo modal
   const closeTodoModal = () => {
     setShowTodoModal(false);
+  };
+
+  // Alarm popup handlers
+  const handleAlarmDismiss = () => {
+    setShowAlarmPopup(false);
+    setAlarmData(null);
+  };
+
+  const handleAlarmComplete = (todoId: string) => {
+    // Mark todo as completed
+    toggleTodo(todoId);
+    setShowAlarmPopup(false);
+    setAlarmData(null);
+  };
+
+  const handleAlarmSnooze = (todoId: string, minutes: number) => {
+    // Reschedule alarm for snooze time
+    const snoozeTime = Date.now() + (minutes * 60 * 1000);
+    const todo = todos.find(t => t.id === todoId);
+    if (todo) {
+      alarmManager.scheduleAlarm(
+        todoId,
+        todo.title,
+        snoozeTime,
+        todo.description,
+        (alarm) => {
+          setAlarmData({
+            title: alarm.title,
+            body: alarm.body,
+            todoId: alarm.todoId
+          });
+          setShowAlarmPopup(true);
+        }
+      );
+      showNotification(`Alarm snoozed for ${minutes} minutes`, { type: 'info' });
+    }
+    setShowAlarmPopup(false);
+    setAlarmData(null);
   };
 
   // Create todo
@@ -612,6 +661,19 @@ export default function Dashboard() {
       <ProfileModal
         isOpen={showProfileModal}
         onClose={() => setShowProfileModal(false)}
+      />
+
+      {/* Alarm Popup */}
+      <AlarmPopup
+        isVisible={showAlarmPopup}
+        title={alarmData?.title || ''}
+        body={alarmData?.body}
+        todoId={alarmData?.todoId}
+        duration={5}
+        repeatCount={3}
+        onDismiss={handleAlarmDismiss}
+        onComplete={handleAlarmComplete}
+        onSnooze={handleAlarmSnooze}
       />
     </div>
   );
