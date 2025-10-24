@@ -1,7 +1,7 @@
 // Service Worker with automatic updates and cache management
 // This will be generated with a unique version on each build
 
-const CACHE_VERSION = '1761303231033-51c03f5'; // This will be replaced during build
+const CACHE_VERSION = '1761304925342-69e121b'; // This will be replaced during build
 const CACHE_NAME = `everytodo-v${CACHE_VERSION}`;
 const STATIC_CACHE_NAME = `everytodo-static-v${CACHE_VERSION}`;
 

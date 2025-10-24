@@ -102,11 +102,7 @@ class AlarmManager {
         }
       };
       
-      await pushNotificationService.showLocalNotification(`🔔 ${alarm.title}`, notificationOptions);
-    } catch (error) {
-      console.error('Error showing push notification:', error);
-      
-      // Fallback to regular notification
+      // Use notification service for sound functionality
       await notificationService.showNotification(alarm.title, {
         body: alarm.body || 'Your todo alarm is ringing!',
         requireInteraction: true,
@@ -116,7 +112,8 @@ class AlarmManager {
         renotify: true, // Replace previous notifications
         actions: [
           { action: 'complete', title: 'Mark Done', icon: '/icon-192.svg' },
-          { action: 'snooze', title: 'Snooze 5min', icon: '/icon-192.svg' }
+          { action: 'snooze', title: 'Snooze 5min', icon: '/icon-192.svg' },
+          { action: 'dismiss', title: 'Dismiss', icon: '/icon-192.svg' }
         ],
         data: {
           todoId: alarm.todoId,
@@ -124,6 +121,8 @@ class AlarmManager {
           action: 'alarm'
         }
       });
+    } catch (error) {
+      console.error('Error showing alarm notification:', error);
     }
 
     // Trigger callback if registered

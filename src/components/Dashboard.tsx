@@ -21,7 +21,6 @@ import ReportsView from './ReportsView';
 import ProfileModal from './ProfileModal';
 import UserAvatar from './UserAvatar';
 import VersionDisplay from './VersionDisplay';
-import AlarmPopup from './AlarmPopup';
 import { 
   Home, 
   Calendar, 
@@ -46,8 +45,6 @@ export default function Dashboard() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null);
   const [isPWAInstalled, setIsPWAInstalled] = useState(false);
-  const [showAlarmPopup, setShowAlarmPopup] = useState(false);
-  const [alarmData, setAlarmData] = useState<{title: string, body?: string, todoId?: string} | null>(null);
 
   // Check if PWA is installed
   useEffect(() => {
@@ -135,15 +132,7 @@ export default function Dashboard() {
             alarmTime,
             todo.description,
             (alarm) => {
-              // Show alarm popup with sound
-              setAlarmData({
-                title: alarm.title,
-                body: alarm.body,
-                todoId: alarm.todoId
-              });
-              setShowAlarmPopup(true);
-              
-              // Also show notification as backup
+              // Show notification when alarm triggers
               showNotification(`🔔 ${alarm.title}`, { 
                 type: 'info',
                 duration: 0 // Don't auto-dismiss alarm notifications
@@ -211,40 +200,6 @@ export default function Dashboard() {
   // Close todo modal
   const closeTodoModal = () => {
     setShowTodoModal(false);
-  };
-
-  // Alarm popup handlers
-  const handleAlarmDismiss = () => {
-    setShowAlarmPopup(false);
-    setAlarmData(null);
-  };
-
-  const handleAlarmComplete = (todoId: string) => {
-    // Mark todo as completed
-    toggleTodo(todoId);
-    setShowAlarmPopup(false);
-    setAlarmData(null);
-  };
-
-  const handleAlarmSnooze = (todoId: string, minutes: number) => {
-    // Reschedule alarm for snooze time
-    const snoozeTime = Date.now() + (minutes * 60 * 1000);
-    alarmManager.scheduleAlarm(
-      todoId,
-      alarmData?.title || 'Snoozed Alarm',
-      snoozeTime,
-      alarmData?.body,
-      (alarm) => {
-        setAlarmData({
-          title: alarm.title,
-          body: alarm.body,
-          todoId: alarm.todoId
-        });
-        setShowAlarmPopup(true);
-      }
-    );
-    setShowAlarmPopup(false);
-    setAlarmData(null);
   };
 
   // Create todo
@@ -612,19 +567,6 @@ export default function Dashboard() {
       <ProfileModal
         isOpen={showProfileModal}
         onClose={() => setShowProfileModal(false)}
-      />
-
-      {/* Alarm Popup */}
-      <AlarmPopup
-        isVisible={showAlarmPopup}
-        title={alarmData?.title || ''}
-        body={alarmData?.body}
-        todoId={alarmData?.todoId}
-        duration={5}
-        repeatCount={3}
-        onDismiss={handleAlarmDismiss}
-        onComplete={handleAlarmComplete}
-        onSnooze={handleAlarmSnooze}
       />
     </div>
   );
