@@ -140,7 +140,6 @@ class AlarmManager {
           await notificationService.showNotification(alarm.title, {
             body: alarm.body || 'Your todo alarm is ringing!',
             requireInteraction: true,
-            vibrate: [300, 200, 300, 200, 300, 200, 300, 200, 300],
             tag: alarm.id,
             silent: false,
             renotify: true,
@@ -157,7 +156,6 @@ class AlarmManager {
         await notificationService.showNotification(alarm.title, {
           body: alarm.body || 'Your todo alarm is ringing!',
           requireInteraction: true,
-          vibrate: [300, 200, 300, 200, 300, 200, 300, 200, 300],
           tag: alarm.id,
           silent: false,
           renotify: true,
@@ -177,7 +175,6 @@ class AlarmManager {
         await notificationService.showNotification(alarm.title, {
           body: alarm.body || 'Your todo alarm is ringing!',
           requireInteraction: true,
-          vibrate: [300, 200, 300, 200, 300, 200, 300, 200, 300],
           tag: alarm.id,
           silent: false,
           renotify: true,
