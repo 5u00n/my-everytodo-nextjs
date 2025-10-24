@@ -12,7 +12,7 @@ import { format, isToday, isTomorrow, addDays, isWithinInterval, isPast } from '
 import alarmManager from '@/lib/alarmManager';
 import pushNotificationService from '@/lib/pushNotificationService';
 import { database } from '@/lib/firebase';
-import { ref, onValue, off, update, remove } from 'firebase/database';
+import { ref, onValue, off, update, remove, push, set } from 'firebase/database';
 import { Todo } from '@/types';
 import AnimatedHero from './AnimatedHero';
 import TodoList from './TodoList';
@@ -39,7 +39,6 @@ export default function Dashboard() {
   const { user, signOut } = useAuth();
   const { showNotification } = useNotification();
   const [todos, setTodos] = useState<Todo[]>([]);
-  const [loading, setLoading] = useState(true);
   const [currentView, setCurrentView] = useState<View>('home');
   const [showTaskDetailModal, setShowTaskDetailModal] = useState(false);
   const [showTodoModal, setShowTodoModal] = useState(false);
@@ -77,28 +76,98 @@ export default function Dashboard() {
 
   // Load todos from Firebase
   useEffect(() => {
-    if (!user || !database) return;
+    if (!user || !database) {
+      return;
+    }
 
-    const todosRef = ref(database, `users/${user.id}/todos`);
+    // Request notification permission for alarms
+    if (alarmManager.isNotificationSupported()) {
+      alarmManager.requestPermission();
+    }
+
+    // Initialize push notifications
+    initializePushNotifications();
+
+    const todosRef = ref(database, `todos/${user.id}`);
     
     const unsubscribe = onValue(todosRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const todosArray = Object.keys(data).map(key => ({
+      if (snapshot.exists()) {
+        const todosData = snapshot.val();
+        const todosArray = Object.keys(todosData).map(key => ({
           id: key,
-          ...data[key]
+          ...todosData[key]
         }));
         setTodos(todosArray);
+        
+        // Schedule alarms for todos with alarm settings
+        scheduleAlarmsForTodos(todosArray);
       } else {
         setTodos([]);
       }
-      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching todos:", error);
     });
 
     return () => {
       off(todosRef, 'value', unsubscribe);
     };
   }, [user]);
+
+  // Schedule alarms for todos
+  const scheduleAlarmsForTodos = (todosList: Todo[]) => {
+    // Clear existing alarms
+    alarmManager.clearAllAlarms();
+    
+    todosList.forEach(todo => {
+      if (todo.alarmSettings?.enabled && !todo.isCompleted) {
+        // Use scheduledTime for alarm timing
+        const alarmTime = todo.scheduledTime;
+        const now = Date.now();
+        
+        // Only schedule if alarm time is in the future
+        if (alarmTime > now) {
+          alarmManager.scheduleAlarm(
+            todo.id,
+            todo.title,
+            alarmTime,
+            todo.description,
+            (alarm) => {
+              // Show notification when alarm triggers
+              showNotification(`🔔 ${alarm.title}`, { 
+                type: 'info',
+                duration: 0 // Don't auto-dismiss alarm notifications
+              });
+            }
+          );
+        }
+      }
+    });
+  };
+
+  // Initialize push notifications
+  const initializePushNotifications = async () => {
+    try {
+      const isSupported = pushNotificationService.isSupported();
+      if (!isSupported) {
+        console.log('Push notifications not supported');
+        return;
+      }
+
+      await pushNotificationService.initialize();
+      
+      // Request permission
+      const permission = await pushNotificationService.requestPermission();
+      if (permission === 'granted') {
+        // Subscribe to push notifications
+        await pushNotificationService.subscribe();
+        console.log('Push notifications enabled');
+      } else {
+        console.log('Push notification permission denied');
+      }
+    } catch (error) {
+      console.error('Error initializing push notifications:', error);
+    }
+  };
 
   // Handle sign out
   const handleSignOut = async () => {
@@ -133,6 +202,52 @@ export default function Dashboard() {
     setShowTodoModal(false);
   };
 
+  // Create todo
+  const createTodo = async (todoData: Omit<Todo, 'id' | 'createdAt' | 'updatedAt' | 'userId'> | Partial<Todo>) => {
+    if (!user || !database) return;
+
+    // Ensure required fields are present
+    if (!todoData.title) {
+      showNotification('Title is required', { type: 'error' });
+      return;
+    }
+
+    try {
+      const newTodo: Todo = {
+        title: todoData.title,
+        description: todoData.description || '',
+        tasks: todoData.tasks || [],
+        scheduledTime: todoData.scheduledTime || Date.now() + 60 * 60 * 1000, // Default to 1 hour from now
+        repeatPattern: todoData.repeatPattern || { type: 'none' },
+        alarmSettings: todoData.alarmSettings || {
+          enabled: true,
+          vibrate: true,
+          sound: true,
+          notification: true,
+          snoozeMinutes: 1,
+          duration: 5,
+          repeatCount: 3
+        },
+        isCompleted: todoData.isCompleted || false,
+        isActive: todoData.isActive !== undefined ? todoData.isActive : true,
+        id: '',
+        userId: user.id,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+
+      const todosRef = ref(database, `todos/${user.id}`);
+      const newTodoRef = push(todosRef);
+      await set(newTodoRef, { ...newTodo, id: newTodoRef.key });
+
+      showNotification('Task created successfully!', { type: 'success' });
+      closeTodoModal();
+    } catch (error) {
+      console.error('Error creating todo:', error);
+      showNotification('Failed to create task', { type: 'error' });
+    }
+  };
+
   // Toggle todo completion
   const toggleTodo = async (todoId: string) => {
     const todo = todos.find(t => t.id === todoId);
@@ -140,16 +255,39 @@ export default function Dashboard() {
 
     try {
       if (!database) return;
-      const todoRef = ref(database, `users/${user?.id}/todos/${todoId}`);
+      const todoRef = ref(database, `todos/${user?.id}/${todoId}`);
       await update(todoRef, {
         isCompleted: !todo.isCompleted,
         completedAt: !todo.isCompleted ? Date.now() : null
       } as Record<string, unknown>);
       
-      showNotification(
-        todo.isCompleted ? 'Task marked as incomplete' : 'Task completed!',
-        { type: 'success' }
-      );
+      // Cancel alarms when completing, reschedule when uncompleting
+      if (!todo.isCompleted) {
+        // Completing - cancel alarms
+        alarmManager.cancelAlarmsForTodo(todoId);
+        showNotification('Task completed!', { type: 'success' });
+      } else {
+        // Uncompleting - reschedule alarms if enabled
+        if (todo.alarmSettings?.enabled) {
+          const alarmTime = todo.scheduledTime;
+          const now = Date.now();
+          if (alarmTime > now) {
+            alarmManager.scheduleAlarm(
+              todo.id,
+              todo.title,
+              alarmTime,
+              todo.description,
+              (alarm) => {
+                showNotification(`🔔 ${alarm.title}`, { 
+                  type: 'info',
+                  duration: 0
+                });
+              }
+            );
+          }
+        }
+        showNotification('Task marked as incomplete', { type: 'info' });
+      }
     } catch (error) {
       console.error('Error updating todo:', error);
       showNotification('Failed to update task', { type: 'error' });
@@ -160,7 +298,11 @@ export default function Dashboard() {
   const deleteTodo = async (todoId: string) => {
     try {
       if (!database) return;
-      const todoRef = ref(database, `users/${user?.id}/todos/${todoId}`);
+      
+      // Cancel any alarms for this todo before deleting
+      alarmManager.cancelAlarmsForTodo(todoId);
+      
+      const todoRef = ref(database, `todos/${user?.id}/${todoId}`);
       await remove(todoRef);
       showNotification('Task deleted successfully', { type: 'success' });
     } catch (error) {
@@ -181,7 +323,9 @@ export default function Dashboard() {
   const getUpcomingTodos = () => {
     return todos.filter(todo => {
       const todoDate = new Date(todo.scheduledTime);
-      return !isToday(todoDate) && !isPast(todoDate);
+      const now = new Date();
+      // Show todos that are scheduled for future times (including today if in the future)
+      return todoDate > now;
     }).sort((a, b) => new Date(a.scheduledTime).getTime() - new Date(b.scheduledTime).getTime());
   };
 
@@ -267,7 +411,7 @@ export default function Dashboard() {
                     <h4 className="font-medium text-foreground mb-1">No upcoming tasks</h4>
                     <p className="text-sm text-muted-foreground mb-4">You're all caught up!</p>
                     <button
-                      onClick={() => setCurrentView('todos')}
+                      onClick={openTodoModal}
                       className="mobile-button bg-primary text-primary-foreground hover:bg-primary/90"
                     >
                       Create New Task
@@ -281,12 +425,12 @@ export default function Dashboard() {
                 <h3 className="text-xl font-semibold text-foreground mb-4">Quick Actions</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <button
-                    onClick={() => setCurrentView('todos')}
+                    onClick={openTodoModal}
                     className="macos-card p-6 text-center hover:scale-105 transition-transform"
                   >
                     <Calendar className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                    <h4 className="font-medium text-foreground">Manage Tasks</h4>
-                    <p className="text-sm text-muted-foreground">View and edit todos</p>
+                    <h4 className="font-medium text-foreground">Create Task</h4>
+                    <p className="text-sm text-muted-foreground">Add new todos</p>
                   </button>
                   <button
                     onClick={() => setCurrentView('calendar')}
@@ -415,7 +559,7 @@ export default function Dashboard() {
       <TodoModal
         isOpen={showTodoModal}
         onClose={closeTodoModal}
-        onSubmit={() => {}}
+        onSubmit={createTodo}
         title="Create Todo"
       />
 
