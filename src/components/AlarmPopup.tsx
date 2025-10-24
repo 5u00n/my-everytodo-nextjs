@@ -243,6 +243,7 @@ export default function AlarmPopup({
   };
 
   const handleComplete = () => {
+    setUserHasInteracted(true); // Enable vibration for future interactions
     stopAlarmSequence(); // Stop alarm sound
     if (todoId && onComplete) {
       onComplete(todoId);
@@ -251,6 +252,7 @@ export default function AlarmPopup({
   };
 
   const handleSnooze = (minutes: number) => {
+    setUserHasInteracted(true); // Enable vibration for future interactions
     stopAlarmSequence(); // Stop alarm sound
     if (todoId && onSnooze) {
       onSnooze(todoId, minutes);
@@ -259,6 +261,7 @@ export default function AlarmPopup({
   };
 
   const handleDismiss = () => {
+    setUserHasInteracted(true); // Enable vibration for future interactions
     stopAlarmSequence(); // Stop alarm sound
     if (onDismiss) {
       onDismiss();
