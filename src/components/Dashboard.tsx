@@ -148,22 +148,13 @@ export default function Dashboard() {
             alarmTime,
             todo.description,
             (alarm) => {
-              // Check if we're on desktop (not PWA/mobile)
-              const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
-                            (window.navigator as any).standalone === true ||
-                            document.referrer.includes('android-app://');
-              
-              const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-              
-              if (!isPWA && !isMobile) {
-                // Desktop: Show alarm popup with sound and vibration
-                setAlarmData({
-                  title: alarm.title,
-                  body: alarm.body,
-                  todoId: alarm.todoId
-                });
-                setShowAlarmPopup(true);
-              }
+              // Show alarm popup for all platforms (desktop, mobile, PWA)
+              setAlarmData({
+                title: alarm.title,
+                body: alarm.body,
+                todoId: alarm.todoId
+              });
+              setShowAlarmPopup(true);
               
               // Always show notification as backup
               showNotification(`🔔 ${alarm.title}`, { 
@@ -711,7 +702,7 @@ export default function Dashboard() {
         todoId={alarmData?.todoId}
         duration={5}
         repeatCount={3}
-        alarmSoundType={alarmSoundType}
+        alarmSoundType={alarmData?.todoId ? todos.find(t => t.id === alarmData.todoId)?.alarmSettings?.soundType || 'normal' : alarmSoundType}
         onDismiss={handleAlarmDismiss}
         onComplete={handleAlarmComplete}
         onSnooze={handleAlarmSnooze}

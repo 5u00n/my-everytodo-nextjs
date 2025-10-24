@@ -44,7 +44,7 @@ export default function TodoModal({ isOpen, onClose, onSubmit, title, initialDat
       tasks: [],
       scheduledTime: Date.now() + 60 * 60 * 1000, // 1 hour from now
       repeatPattern: { type: 'none' as 'none' | 'daily' | 'weekly' | 'monthly' },
-      alarmSettings: { enabled: true, vibrate: true, sound: true, notification: true, snoozeMinutes: 1, duration: 5, repeatCount: 3 },
+      alarmSettings: { enabled: true, vibrate: true, sound: true, notification: true, snoozeMinutes: 1, duration: 5, repeatCount: 3, soundType: 'normal' },
       isCompleted: false,
       isActive: true,
     }
@@ -71,7 +71,7 @@ export default function TodoModal({ isOpen, onClose, onSubmit, title, initialDat
         tasks: [],
         scheduledTime: Date.now() + 60 * 60 * 1000, // 1 hour from now
         repeatPattern: { type: 'none' as 'none' | 'daily' | 'weekly' | 'monthly' },
-        alarmSettings: { enabled: true, vibrate: true, sound: true, notification: true, snoozeMinutes: 1, duration: 5, repeatCount: 3 },
+        alarmSettings: { enabled: true, vibrate: true, sound: true, notification: true, snoozeMinutes: 1, duration: 5, repeatCount: 3, soundType: 'normal' },
         isCompleted: false,
         isActive: true,
       });
@@ -95,7 +95,7 @@ export default function TodoModal({ isOpen, onClose, onSubmit, title, initialDat
       ...prev,
       alarmSettings: {
         ...prev.alarmSettings,
-        [name]: type === 'checkbox' ? checked : parseInt(value) || 0,
+        [name]: type === 'checkbox' ? checked : (type === 'radio' ? value : parseInt(value) || 0),
       },
     }));
   };
@@ -335,6 +335,45 @@ export default function TodoModal({ isOpen, onClose, onSubmit, title, initialDat
                 onChange={handleAlarmSettingChange}
                 className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
               />
+            </div>
+            
+            {/* Alarm Sound Type */}
+            <div className="mt-3">
+              <label htmlFor="alarmSoundType" className="block text-sm font-medium text-foreground mb-2">
+                Alarm Sound Type
+              </label>
+              <div className="flex space-x-4">
+                <div className="flex items-center">
+                  <input
+                    type="radio"
+                    id="alarmSoundNormal"
+                    name="soundType"
+                    value="normal"
+                    checked={formData.alarmSettings.soundType === 'normal'}
+                    onChange={handleAlarmSettingChange}
+                    className="h-4 w-4 text-primary border-input mr-2"
+                  />
+                  <label htmlFor="alarmSoundNormal" className="text-sm text-foreground flex items-center">
+                    <Volume2 className="w-4 h-4 mr-1" />
+                    Normal
+                  </label>
+                </div>
+                <div className="flex items-center">
+                  <input
+                    type="radio"
+                    id="alarmSoundExtreme"
+                    name="soundType"
+                    value="extreme"
+                    checked={formData.alarmSettings.soundType === 'extreme'}
+                    onChange={handleAlarmSettingChange}
+                    className="h-4 w-4 text-primary border-input mr-2"
+                  />
+                  <label htmlFor="alarmSoundExtreme" className="text-sm text-foreground flex items-center">
+                    <VolumeX className="w-4 h-4 mr-1" />
+                    Extreme
+                  </label>
+                </div>
+              </div>
             </div>
             
             {/* Snooze Minutes */}

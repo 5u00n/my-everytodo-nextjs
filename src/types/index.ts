@@ -27,6 +27,7 @@ export interface AlarmSettings {
   snoozeMinutes: number;
   duration: number; // Duration in minutes (default 5 minutes)
   repeatCount: number; // How many times to repeat the alarm (default 3)
+  soundType?: 'normal' | 'extreme'; // Alarm sound type (default 'normal')
 }
 
 export interface Todo {

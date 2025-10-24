@@ -137,7 +137,19 @@ class AlarmManager {
         } else {
           // Push service not ready, fall back to regular notification
           console.log('Push service not ready, falling back to regular notification');
-          throw new Error('Push service not initialized');
+          await notificationService.showNotification(alarm.title, {
+            body: alarm.body || 'Your todo alarm is ringing!',
+            requireInteraction: true,
+            vibrate: [300, 200, 300, 200, 300, 200, 300, 200, 300],
+            tag: alarm.id,
+            silent: false,
+            renotify: true,
+            data: {
+              todoId: alarm.todoId,
+              alarmId: alarm.id,
+              action: 'alarm'
+            }
+          });
         }
       } else {
         // Use regular notifications for desktop
