@@ -51,7 +51,7 @@ export default function AnimatedHero({
     if (timeInMinutes >= 720 && timeInMinutes < 900) return 'afternoon';
     
     // Evening: 3:31 PM - 5:30 PM
-    if (timeInMinutes >= 931 && timeInMinutes < 1050) return 'evening';
+    if (timeInMinutes >= 901 && timeInMinutes < 1050) return 'evening';
     
     // Sunset: 5:30 PM - 6:30 PM
     if (timeInMinutes >= 1050 && timeInMinutes < 1170) return 'sunset';
@@ -636,41 +636,59 @@ export default function AnimatedHero({
         </div>
         
         {/* Main Content */}
-        <DynamicTextColor 
-          className="relative z-10 max-w-4xl mx-auto"
-          lightClassName="text-gray-900"
-          darkClassName="text-white"
-          threshold={100}
-        >
-          <div className="text-center mb-8">
+        <div className="relative z-10 max-w-4xl mx-auto">
+          {/* Greeting and Motivation - Wrapped Together */}
+          <DynamicTextColor 
+            className="text-center mb-8"
+            lightClassName="text-gray-900"
+            darkClassName="text-white"
+            threshold={100}
+          >
             <h2 className="text-3xl md:text-4xl font-bold mb-2">
               {greeting}
             </h2>
             <p className="text-xl md:text-2xl mb-6 font-bold">
               {motivationalMessage}
             </p>
-          </div>
+          </DynamicTextColor>
           
-          {/* Quick Stats */}
+          {/* Quick Stats - Each Wrapped Individually */}
           <div className="grid grid-cols-3 gap-4 mb-6">
-            <div className="text-center transform hover:scale-105 transition-all duration-300">
+            <DynamicTextColor 
+              className="text-center transform hover:scale-105 transition-all duration-300"
+              lightClassName="text-gray-900"
+              darkClassName="text-white"
+              threshold={100}
+            >
               <div className="text-2xl font-bold">
                 {todaysTodos}
               </div>
               <div className="text-sm opacity-80">Today&apos;s Tasks</div>
-            </div>
-            <div className="text-center transform hover:scale-105 transition-all duration-300">
+            </DynamicTextColor>
+            
+            <DynamicTextColor 
+              className="text-center transform hover:scale-105 transition-all duration-300"
+              lightClassName="text-gray-900"
+              darkClassName="text-white"
+              threshold={100}
+            >
               <div className="text-2xl font-bold">
                 {completedToday}
               </div>
               <div className="text-sm opacity-80">Completed</div>
-            </div>
-            <div className="text-center transform hover:scale-105 transition-all duration-300">
+            </DynamicTextColor>
+            
+            <DynamicTextColor 
+              className="text-center transform hover:scale-105 transition-all duration-300"
+              lightClassName="text-gray-900"
+              darkClassName="text-white"
+              threshold={100}
+            >
               <div className="text-2xl font-bold">
                 {totalTodos}
               </div>
               <div className="text-sm opacity-80">Total Todos</div>
-            </div>
+            </DynamicTextColor>
           </div>
 
           <div className="text-center">
@@ -682,7 +700,7 @@ export default function AnimatedHero({
               Add New Todo
             </button>
           </div>
-        </DynamicTextColor>
+        </div>
         
         {/* Time-specific decorative elements */}
         {timeOfDay === 'midnight' && (

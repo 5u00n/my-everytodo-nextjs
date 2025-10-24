@@ -195,7 +195,7 @@ export function DynamicTextColor({
                 
                 // Only update if the color actually changed and enough time has passed to prevent flickering
                 const now = Date.now();
-                if (currentColor !== dynamicTextColor && (now - lastUpdateTime.current) > 1000) {
+                if (currentColor !== dynamicTextColor && (now - lastUpdateTime.current) > 500) {
                   lastUpdateTime.current = now;
                   // Apply smooth, slow color transitions
                   containerRef.current.style.transition = 'color 3s ease-in-out, text-shadow 3s ease-in-out';
@@ -258,7 +258,7 @@ export function DynamicTextColor({
             if (containerRef.current) {
               const currentColor = containerRef.current.style.color;
               const now = Date.now();
-              if (currentColor !== dynamicColor && (now - lastUpdateTime.current) > 1000) {
+              if (currentColor !== dynamicColor && (now - lastUpdateTime.current) > 500) {
                 lastUpdateTime.current = now;
                 containerRef.current.style.transition = 'color 3s ease-in-out, text-shadow 3s ease-in-out';
                 containerRef.current.style.color = dynamicColor;
@@ -328,8 +328,8 @@ export function DynamicTextColor({
     
     window.addEventListener('scroll', handleScroll, { passive: true });
 
-    // Update at a very slow rate to avoid interfering with background animation
-    const interval = setInterval(sampleBackgroundImage, 5000); // Very slow - every 5 seconds
+    // Update at a moderate rate to allow color changes while avoiding jittering
+    const interval = setInterval(sampleBackgroundImage, 2000); // Every 2 seconds
 
     // Disabled requestAnimationFrame sampling to prevent jittering
     // Only using setInterval for minimal impact on background animation
