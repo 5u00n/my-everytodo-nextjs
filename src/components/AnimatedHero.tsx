@@ -7,8 +7,6 @@ import { DynamicTextColor } from './DynamicTextColor';
 type View = 'home' | 'todos' | 'calendar' | 'reports';
 
 interface AnimatedHeroProps {
-  greeting: string;
-  motivationalMessage: string;
   todaysTodos: number;
   completedToday: number;
   totalTodos: number;
@@ -16,8 +14,6 @@ interface AnimatedHeroProps {
 }
 
 export default function AnimatedHero({
-  greeting,
-  motivationalMessage,
   todaysTodos,
   completedToday,
   totalTodos,
@@ -75,6 +71,315 @@ export default function AnimatedHero({
 
   const timeOfDay = getTimeOfDay();
 
+
+  const getGreeting = () => {
+    const hour = currentTime.getHours();
+    const minute = currentTime.getMinutes();
+    const dayOfWeek = currentTime.getDay(); // 0 = Sunday, 6 = Saturday
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    
+    // Special Noon greeting (12:00 PM - 12:01 PM)
+    if (hour === 12 && minute <= 1) {
+      const noonGreetings = [
+        '🕛 High Noon',
+        '☀️ Perfect Noon',
+        '🎯 Noon Time',
+        '⚡ Noon Power',
+        '🌟 Noon Excellence',
+        '🎪 Noon Showtime',
+        '💎 Noon Diamond',
+        '🚀 Noon Launch'
+      ];
+      return noonGreetings[Math.floor(Math.random() * noonGreetings.length)];
+    }
+    
+    // Early Morning greetings (4 AM - 7:59 AM)
+    else if (hour >= 4 && hour < 8) {
+      const earlyMorningGreetings = [
+        '🌅 Early Bird',
+        '☀️ Dawn Breaker',
+        '🌞 Morning Warrior',
+        '💪 Rise and Grind',
+        '🚀 Early Start',
+        '⚡ Morning Power',
+        '🎯 Pre-Dawn Focus',
+        '🔥 Early Energy',
+        '🌟 Morning Star',
+        '💎 Early Excellence'
+      ];
+      return earlyMorningGreetings[Math.floor(Math.random() * earlyMorningGreetings.length)];
+    }
+    
+    // Morning greetings (8 AM - 10:59 AM)
+    else if (hour >= 8 && hour < 11) {
+      const morningGreetings = [
+        '🌅 Good Morning',
+        '☀️ Rise and Shine',
+        '🌞 Morning Sunshine',
+        '🚀 Start Your Day Right',
+        '✨ Fresh Start',
+        '🌟 New Day, New Possibilities',
+        '💪 Ready to Conquer Today?',
+        '🎯 Let\'s Make Today Amazing',
+        '⭐ Time to Shine',
+        '🏆 Good Morning, Champion',
+        '🎪 Morning Showtime',
+        '🎭 Rise & Grind'
+      ];
+      return morningGreetings[Math.floor(Math.random() * morningGreetings.length)];
+    }
+    
+    // Late Morning greetings (11 AM - 11:59 AM)
+    else if (hour >= 11 && hour < 12) {
+      const lateMorningGreetings = [
+        '🌤️ Late Morning',
+        '☀️ Almost Lunch Time',
+        '🚀 Mid-Morning Push',
+        '💪 Morning Momentum',
+        '🎯 Pre-Lunch Focus',
+        '⚡ Late Morning Energy',
+        '🔥 Morning Flow',
+        '📈 Building Momentum',
+        '🌟 Morning Glow',
+        '💎 Morning Excellence'
+      ];
+      return lateMorningGreetings[Math.floor(Math.random() * lateMorningGreetings.length)];
+    }
+    
+    // Afternoon greetings (12:02 PM - 3:59 PM)
+    else if (hour >= 12 && hour < 16) {
+      const afternoonGreetings = [
+        '☀️ Good Afternoon',
+        '😊 Hope Your Day is Going Well',
+        '⚡ Afternoon Productivity',
+        '🔥 Keep the Momentum Going',
+        '💪 You\'re Doing Great',
+        '🎯 Stay Focused',
+        '🚀 Power Through the Afternoon',
+        '📈 Making Progress?',
+        '⚡ Afternoon Energy',
+        '💥 Keep Crushing It',
+        '🌟 Afternoon Excellence',
+        '🎪 Afternoon Showtime'
+      ];
+      return afternoonGreetings[Math.floor(Math.random() * afternoonGreetings.length)];
+    }
+    
+    // Late Afternoon greetings (4 PM - 5:59 PM)
+    else if (hour >= 16 && hour < 18) {
+      const lateAfternoonGreetings = [
+        '🌤️ Late Afternoon',
+        '☀️ Almost Evening',
+        '🚀 Afternoon Sprint',
+        '💪 Power Hour',
+        '🎯 Late Day Focus',
+        '⚡ Afternoon Surge',
+        '🔥 End of Day Push',
+        '📈 Afternoon Peak',
+        '🌟 Golden Hour',
+        '💎 Afternoon Excellence',
+        '🎭 Afternoon Drama',
+        '🎪 Late Day Show'
+      ];
+      return lateAfternoonGreetings[Math.floor(Math.random() * lateAfternoonGreetings.length)];
+    }
+    
+    // Evening greetings (6 PM - 8:59 PM)
+    else if (hour >= 18 && hour < 21) {
+      const eveningGreetings = [
+        '🌆 Good Evening',
+        '🌅 Evening Wind Down',
+        '🌙 Evening Vibes',
+        '✨ Evening Reflection',
+        '🎯 Evening Focus',
+        '💫 Evening Magic',
+        '🌟 Evening Excellence',
+        '🌠 Evening Dreams',
+        '🎭 Evening Drama',
+        '🎪 Evening Show'
+      ];
+      return eveningGreetings[Math.floor(Math.random() * eveningGreetings.length)];
+    }
+    
+    // Night greetings (9 PM - 11:59 PM)
+    else if (hour >= 21 && hour < 24) {
+      const nightGreetings = [
+        '🌙 Good Night',
+        '🌃 Night Owl',
+        '⭐ Night Time',
+        '🌠 Night Dreams',
+        '🌌 Night Sky',
+        '🌕 Night Magic',
+        '🌟 Night Excellence',
+        '🌑 Night Reflection',
+        '🎭 Night Drama',
+        '🎪 Night Show'
+      ];
+      return nightGreetings[Math.floor(Math.random() * nightGreetings.length)];
+    }
+    
+    // Late Night/Early Morning (12 AM - 3:59 AM)
+    else {
+      const lateNightGreetings = [
+        '🌙 Late Night',
+        '🌃 Night Owl',
+        '⭐ Still Awake?',
+        '🌠 Night Dreams',
+        '🌌 Deep Night',
+        '🌕 Night Magic',
+        '🌟 Night Excellence',
+        '🌑 Night Reflection',
+        '🎭 Night Drama',
+        '🎪 Night Show'
+      ];
+      return lateNightGreetings[Math.floor(Math.random() * lateNightGreetings.length)];
+    }
+  };
+
+  const getMotivationalMessage = () => {
+    const hour = currentTime.getHours();
+    const minute = currentTime.getMinutes();
+    const dayOfWeek = currentTime.getDay();
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    
+    // Special Noon motivation (12:00 PM - 12:01 PM)
+    if (hour === 12 && minute <= 1) {
+      const noonMessages = [
+        "🕛 Perfect noon timing!",
+        "☀️ Peak of the day!",
+        "🎯 Noon precision!",
+        "⚡ Noon power hour!",
+        "🌟 Noon excellence!",
+        "🎪 Noon showtime!",
+        "💎 Noon diamond moment!",
+        "🚀 Noon launch time!"
+      ];
+      return noonMessages[Math.floor(Math.random() * noonMessages.length)];
+    }
+    
+    // Early Morning motivation (4 AM - 7:59 AM)
+    else if (hour >= 4 && hour < 8) {
+      const earlyMorningMessages = [
+        "🌅 Early bird gets the worm!",
+        "☀️ Dawn of a new day",
+        "💪 Start strong, finish stronger",
+        "🚀 Early momentum builds success",
+        "⚡ Morning energy sets the tone",
+        "🎯 Early focus = all-day success",
+        "🔥 Rise and grind mentality",
+        "🌟 Morning excellence starts now"
+      ];
+      return earlyMorningMessages[Math.floor(Math.random() * earlyMorningMessages.length)];
+    }
+    
+    // Morning motivation (8 AM - 10:59 AM)
+    else if (hour >= 8 && hour < 11) {
+      const morningMessages = [
+        "🌅 Good morning, world changer!",
+        "☀️ Today is your canvas",
+        "💪 Every morning is a fresh start",
+        "🚀 Morning momentum = all-day success",
+        "⚡ Fresh energy, fresh possibilities",
+        "🎯 Morning focus = evening success",
+        "🔥 Start strong, stay strong",
+        "🌟 Your morning sets your day"
+      ];
+      return morningMessages[Math.floor(Math.random() * morningMessages.length)];
+    }
+    
+    // Late Morning motivation (11 AM - 11:59 AM)
+    else if (hour >= 11 && hour < 12) {
+      const lateMorningMessages = [
+        "🌤️ Mid-morning momentum!",
+        "☀️ Almost lunch time, keep going!",
+        "🚀 Pre-lunch productivity",
+        "💪 Morning flow continues",
+        "🎯 Late morning focus",
+        "⚡ Building morning energy",
+        "🔥 Morning momentum building",
+        "📈 Pre-lunch progress"
+      ];
+      return lateMorningMessages[Math.floor(Math.random() * lateMorningMessages.length)];
+    }
+    
+    // Afternoon motivation (12:02 PM - 3:59 PM)
+    else if (hour >= 12 && hour < 16) {
+      const afternoonMessages = [
+        "🔥 Keep the momentum going!",
+        "🏁 You're halfway there",
+        "🎯 Stay focused and productive",
+        "📈 Every task completed is progress",
+        "💪 Push through the afternoon",
+        "⭐ Your dedication shows",
+        "👏 Keep up the great work",
+        "🔍 Success is in the details",
+        "🎪 Afternoon showtime!",
+        "🌟 You're crushing it!"
+      ];
+      return afternoonMessages[Math.floor(Math.random() * afternoonMessages.length)];
+    }
+    
+    // Late Afternoon motivation (4 PM - 5:59 PM)
+    else if (hour >= 16 && hour < 18) {
+      const lateAfternoonMessages = [
+        "🌤️ Late afternoon push!",
+        "☀️ Almost evening, finish strong!",
+        "🚀 Afternoon sprint time",
+        "💪 Power hour activated",
+        "🎯 Late day focus",
+        "⚡ Afternoon surge energy",
+        "🔥 End of day push",
+        "📈 Afternoon peak performance"
+      ];
+      return lateAfternoonMessages[Math.floor(Math.random() * lateAfternoonMessages.length)];
+    }
+    
+    // Evening motivation (6 PM - 8:59 PM)
+    else if (hour >= 18 && hour < 21) {
+      const eveningMessages = [
+        "🌆 Evening wind-down time",
+        "🌅 Reflect on today's wins",
+        "✨ Evening reflection brings wisdom",
+        "🎯 Evening focus = tomorrow's success",
+        "💫 Evening magic happens now",
+        "🌟 Evening excellence",
+        "🌠 Evening dreams start here",
+        "🎭 Evening drama unfolds"
+      ];
+      return eveningMessages[Math.floor(Math.random() * eveningMessages.length)];
+    }
+    
+    // Night motivation (9 PM - 11:59 PM)
+    else if (hour >= 21 && hour < 24) {
+      const nightMessages = [
+        "🌙 Night owl energy!",
+        "🌃 Night time productivity",
+        "⭐ Night dreams fuel tomorrow",
+        "🌠 Night magic in the air",
+        "🌌 Night sky full of possibilities",
+        "🌕 Night reflection time",
+        "🌟 Night excellence",
+        "🎭 Night drama continues"
+      ];
+      return nightMessages[Math.floor(Math.random() * nightMessages.length)];
+    }
+    
+    // Late Night/Early Morning motivation (12 AM - 3:59 AM)
+    else {
+      const lateNightMessages = [
+        "🌙 Late night dedication!",
+        "🌃 Night owl power!",
+        "⭐ Still grinding? Respect!",
+        "🌠 Night dreams fuel success",
+        "🌌 Deep night focus",
+        "🌕 Night magic continues",
+        "🌟 Night excellence",
+        "🎭 Night drama unfolds"
+      ];
+      return lateNightMessages[Math.floor(Math.random() * lateNightMessages.length)];
+    }
+  };
+
   const getBackgroundImage = () => {
     switch (timeOfDay) {
       case 'midnight':
@@ -86,7 +391,7 @@ export default function AnimatedHero({
       case 'late-morning':
         return '/images/backgrounds/morning-9_30am-12_00pm.jpg';
       case 'afternoon':
-        return '/images/backgrounds/afternoon-12_01pm-3_00pm.jpg';
+         return '/images/backgrounds/afternoon-12_01pm-3_00pm.jpg';
       case 'evening':
         return '/images/backgrounds/evening-3_31pm-5_30pm.jpg';
       case 'sunset':
@@ -230,6 +535,11 @@ export default function AnimatedHero({
     return icons;
   };
 
+  // Memoized values for performance optimization
+  const greeting = React.useMemo(() => getGreeting(), [currentTime]);
+  const motivationalMessage = React.useMemo(() => getMotivationalMessage(), [currentTime]);
+  const backgroundStyle = React.useMemo(() => getBackgroundStyle(), [timeOfDay]);
+
   return (
     <>
       <style jsx>{`
@@ -304,7 +614,7 @@ export default function AnimatedHero({
       
       <div 
         className="relative overflow-hidden text-white px-4 py-8 md:py-12"
-        style={getBackgroundStyle()}
+        style={backgroundStyle}
       >
         {/* Floating Background Icons */}
         {getFloatingIcons()}
@@ -336,7 +646,7 @@ export default function AnimatedHero({
             <h2 className="text-3xl md:text-4xl font-bold mb-2">
               {greeting}
             </h2>
-            <p className="text-lg mb-6 opacity-90">
+            <p className="text-xl md:text-2xl mb-6 font-bold">
               {motivationalMessage}
             </p>
           </div>

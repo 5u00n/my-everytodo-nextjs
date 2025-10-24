@@ -135,13 +135,48 @@ The mobile API is designed to work with:
 ### UI/UX Enhancements
 
 - **Skeleton Loading** - No more loading spinners, only realistic skeleton placeholders
-- **Dynamic Text Colors** - Text automatically adjusts color based on background brightness
+- **Dynamic Text Colors** - Advanced brightness-inverted color system that maintains hue while optimizing contrast
 - **Compact Mobile Navigation** - Icon-only navigation bar for mobile devices
 - **Glassmorphism Design** - Modern glass-like UI elements
 - **Smooth Animations** - Fluid transitions and micro-interactions
 - **Dark/Light Theme** - Automatic theme switching with system preference
 - **Responsive Layout** - Optimized for all screen sizes
 - **Touch-Friendly** - Large touch targets for mobile devices
+- **Enhanced Motivation Text** - Larger, bolder motivational messages for better visibility
+- **Performance Optimized** - Memoized calculations and reduced sampling frequency for smooth performance
+
+### Dynamic Text Color System
+
+The application features an advanced dynamic text color system that intelligently adjusts text colors based on the animated background:
+
+#### 🎨 **Brightness-Inverted Color Algorithm**
+
+- **Same Hue, Opposite Brightness** - Text maintains the same color family as the background but with inverted brightness
+- **Perceptual Luminance** - Uses the standard luminance formula (0.299×R + 0.587×G + 0.114×B) for accurate brightness calculation
+- **Real-time Sampling** - Samples the animated background every 5 seconds to track color changes
+- **Smooth Transitions** - 3-second CSS transitions for elegant color changes
+
+#### 🌈 **Color Examples**
+
+- **Bright Blue Sky** → **Dark Blue Text** (same blue, darker)
+- **Dark Purple Night** → **Light Purple Text** (same purple, lighter)
+- **Green Forest** → **Dark Green Text** (same green, darker)
+- **Orange Sunset** → **Light Orange Text** (same orange, lighter)
+
+#### ⚡ **Performance Optimizations**
+
+- **Optimized Sampling** - Reduced frequency to prevent animation jittering
+- **Memoized Calculations** - React.useMemo for greeting and motivational messages
+- **Efficient Color Math** - Streamlined brightness ratio calculations
+- **CSS Fallbacks** - Works with both image backgrounds and CSS colors
+
+#### 🎯 **Benefits**
+
+- **Perfect Contrast** - Always ensures optimal readability
+- **Natural Harmony** - Colors feel cohesive and related to the background
+- **Professional Look** - Sophisticated, modern appearance
+- **Accessibility** - Maintains WCAG contrast standards
+- **Smooth Performance** - No impact on background animation smoothness
 
 ### PWA Features
 
