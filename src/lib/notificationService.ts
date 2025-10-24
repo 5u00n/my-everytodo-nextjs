@@ -200,12 +200,10 @@ class NotificationService {
     try {
       const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
       
-      // Create a traditional alarm sound (3 seconds for notification)
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
+      // Resume audio context if suspended
+      if (audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
       
       // Create traditional alarm sound pattern (beep-beep-beep)
       const duration = 3; // 3 seconds for notification
@@ -221,22 +219,37 @@ class NotificationService {
       for (let i = 0; i < cycles; i++) {
         const cycleStart = audioContext.currentTime + (i * cycleDuration);
         
-        // First beep (low tone)
-        oscillator.frequency.setValueAtTime(lowFreq, cycleStart);
-        gainNode.gain.setValueAtTime(0.3, cycleStart);
-        gainNode.gain.setValueAtTime(0.3, cycleStart + beepDuration);
-        gainNode.gain.setValueAtTime(0.01, cycleStart + beepDuration + 0.01);
+        // Create oscillator for first beep (low tone)
+        const oscillator1 = audioContext.createOscillator();
+        const gainNode1 = audioContext.createGain();
         
-        // Second beep (high tone) - start after pause
+        oscillator1.connect(gainNode1);
+        gainNode1.connect(audioContext.destination);
+        
+        oscillator1.frequency.setValueAtTime(lowFreq, cycleStart);
+        gainNode1.gain.setValueAtTime(0.3, cycleStart);
+        gainNode1.gain.setValueAtTime(0.3, cycleStart + beepDuration);
+        gainNode1.gain.setValueAtTime(0.01, cycleStart + beepDuration + 0.01);
+        
+        oscillator1.start(cycleStart);
+        oscillator1.stop(cycleStart + beepDuration);
+        
+        // Create oscillator for second beep (high tone) - start after pause
         const secondBeepStart = cycleStart + beepDuration + pauseDuration;
-        oscillator.frequency.setValueAtTime(highFreq, secondBeepStart);
-        gainNode.gain.setValueAtTime(0.3, secondBeepStart);
-        gainNode.gain.setValueAtTime(0.3, secondBeepStart + beepDuration);
-        gainNode.gain.setValueAtTime(0.01, secondBeepStart + beepDuration + 0.01);
+        const oscillator2 = audioContext.createOscillator();
+        const gainNode2 = audioContext.createGain();
+        
+        oscillator2.connect(gainNode2);
+        gainNode2.connect(audioContext.destination);
+        
+        oscillator2.frequency.setValueAtTime(highFreq, secondBeepStart);
+        gainNode2.gain.setValueAtTime(0.3, secondBeepStart);
+        gainNode2.gain.setValueAtTime(0.3, secondBeepStart + beepDuration);
+        gainNode2.gain.setValueAtTime(0.01, secondBeepStart + beepDuration + 0.01);
+        
+        oscillator2.start(secondBeepStart);
+        oscillator2.stop(secondBeepStart + beepDuration);
       }
-      
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + duration);
       
       // Add gentler vibration pattern
       if ('vibrate' in navigator) {
