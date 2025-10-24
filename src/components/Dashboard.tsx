@@ -288,13 +288,8 @@ export default function Dashboard() {
     const todo = todos.find(t => t.id === todoId);
     if (!todo) return;
 
-    // Check if todo is in the future
-    const now = new Date();
-    const todoDate = new Date(todo.scheduledTime);
-    if (todoDate > now) {
-      // Don't allow completing future todos
-      return;
-    }
+    // Allow completing todos regardless of their scheduled time
+    // This enables completing upcoming todos from the home page
 
     const nowTimestamp = Date.now();
     const updatedFields: Partial<Todo> = {
@@ -439,6 +434,7 @@ export default function Dashboard() {
                   completedToday={getCompletedToday()}
                   totalTodos={todos.length}
                   onTaskClick={openTaskDetail}
+                  onToggleTodo={toggleTodo}
                 />;
     }
   };
@@ -605,14 +601,15 @@ export default function Dashboard() {
   );
 }
 
-// Home View Component with Today's Focus
+// Home View Component with Upcoming Focus
 function HomeView({ 
   onNavigate, 
   todaysTodos,
   upcomingTodos,
   completedToday,
   totalTodos,
-  onTaskClick
+  onTaskClick,
+  onToggleTodo
 }: { 
   onNavigate: (view: View) => void; 
   todaysTodos: Todo[];
@@ -620,6 +617,7 @@ function HomeView({
   completedToday: number;
   totalTodos: number;
   onTaskClick: (todo: Todo) => void;
+  onToggleTodo: (todoId: string) => void;
 }) {
   const [currentTime, setCurrentTime] = useState(new Date());
   
@@ -916,64 +914,71 @@ function HomeView({
       />
 
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        {/* Today's Focus */}
+        {/* Upcoming Tasks */}
         <section>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xl font-semibold text-foreground flex items-center">
-              <Clock className="w-5 h-5 mr-2 text-primary" />
-              Today&apos;s Focus
+              <Calendar className="w-5 h-5 mr-2 text-green-600" />
+              Upcoming Tasks
             </h3>
-            <span className="text-sm text-muted-foreground">{format(new Date(), 'MMM d, yyyy')}</span>
+            <span className="text-sm text-muted-foreground">{upcomingTodos.length} tasks</span>
           </div>
           
-          {todaysTodos.length > 0 ? (
-                    <div className="space-y-3">
-                      {todaysTodos.slice(0, 3).map(todo => (
-                        <div key={todo.id} className="macos-card p-4 cursor-pointer hover:bg-accent transition-colors" onClick={() => onTaskClick(todo)}>
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <h4 className="font-medium text-card-foreground mb-1">{todo.title}</h4>
-                              <div className="flex items-center text-sm text-muted-foreground mb-2">
-                                <Clock className="w-4 h-4 mr-1" />
-                                {format(new Date(todo.scheduledTime), 'h:mm a')}
-                              </div>
-                              {todo.tasks && todo.tasks.length > 0 && (
-                                <div className="text-sm text-muted-foreground">
-                                  {todo.tasks.filter(task => !task.isCompleted).length} tasks remaining
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              {todo.alarmSettings.enabled && (
-                                <Bell className="w-4 h-4 text-primary" />
-                              )}
-                              <button 
-                                className="p-1 text-muted-foreground hover:text-foreground"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  // TODO: Implement toggle functionality
-                                }}
-                              >
-                                <Circle className="w-5 h-5" />
-                              </button>
-                            </div>
-                          </div>
+          {upcomingTodos.length > 0 ? (
+            <div className="space-y-3">
+              {upcomingTodos.slice(0, 5).map(todo => (
+                <div key={todo.id} className="macos-card p-4 hover:bg-accent transition-colors">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 cursor-pointer" onClick={() => onTaskClick(todo)}>
+                      <h4 className={`font-medium mb-1 ${todo.isCompleted ? 'line-through text-muted-foreground' : 'text-card-foreground'}`}>
+                        {todo.title}
+                      </h4>
+                      <div className="flex items-center text-sm text-muted-foreground mb-2">
+                        <Calendar className="w-4 h-4 mr-1" />
+                        {isTomorrow(new Date(todo.scheduledTime)) ? 'Tomorrow' : format(new Date(todo.scheduledTime), 'MMM d')} at {format(new Date(todo.scheduledTime), 'h:mm a')}
+                      </div>
+                      {todo.tasks && todo.tasks.length > 0 && (
+                        <div className="text-sm text-muted-foreground">
+                          {todo.tasks.filter(task => !task.isCompleted).length} tasks remaining
                         </div>
-                      ))}
-              {todaysTodos.length > 3 && (
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {todo.alarmSettings.enabled && (
+                        <Bell className="w-4 h-4 text-primary" />
+                      )}
+                      <button 
+                        className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleTodo(todo.id);
+                        }}
+                        title={todo.isCompleted ? 'Mark as incomplete' : 'Mark as complete'}
+                      >
+                        {todo.isCompleted ? (
+                          <CheckCircle2 className="w-5 h-5 text-green-500" />
+                        ) : (
+                          <Circle className="w-5 h-5" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {upcomingTodos.length > 5 && (
                 <button 
                   onClick={() => onNavigate('todos')}
                   className="w-full macos-card p-4 text-center text-primary hover:bg-accent transition-colors"
                 >
-                  View {todaysTodos.length - 3} more tasks
+                  View {upcomingTodos.length - 5} more tasks
                 </button>
               )}
             </div>
           ) : (
             <div className="macos-card p-8 text-center">
               <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-3" />
-              <h4 className="text-lg font-medium text-card-foreground mb-2">All caught up!</h4>
-              <p className="text-muted-foreground mb-4">No tasks scheduled for today.</p>
+              <h4 className="text-lg font-medium text-card-foreground mb-2">No upcoming tasks!</h4>
+              <p className="text-muted-foreground mb-4">You're all caught up with your upcoming tasks.</p>
               <button 
                 onClick={() => onNavigate('todos')}
                 className="mobile-button bg-primary text-primary-foreground hover:bg-primary/90"
@@ -983,34 +988,6 @@ function HomeView({
             </div>
           )}
         </section>
-
-        {/* Upcoming Tasks */}
-        {upcomingTodos.length > 0 && (
-          <section>
-            <h3 className="text-xl font-semibold text-foreground mb-4 flex items-center">
-              <Calendar className="w-5 h-5 mr-2 text-green-600" />
-              Upcoming
-            </h3>
-                    <div className="space-y-3">
-                      {upcomingTodos.slice(0, 2).map(todo => (
-                        <div key={todo.id} className="macos-card p-4 cursor-pointer hover:bg-accent transition-colors" onClick={() => onTaskClick(todo)}>
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <h4 className="font-medium text-card-foreground mb-1">{todo.title}</h4>
-                              <div className="flex items-center text-sm text-muted-foreground">
-                                <Calendar className="w-4 h-4 mr-1" />
-                                {isTomorrow(new Date(todo.scheduledTime)) ? 'Tomorrow' : format(new Date(todo.scheduledTime), 'MMM d')} at {format(new Date(todo.scheduledTime), 'h:mm a')}
-                              </div>
-                            </div>
-                            {todo.alarmSettings.enabled && (
-                              <Bell className="w-4 h-4 text-primary" />
-                            )}
-                          </div>
-                        </div>
-                      ))}
-            </div>
-          </section>
-        )}
 
         {/* Quick Actions */}
         <section>

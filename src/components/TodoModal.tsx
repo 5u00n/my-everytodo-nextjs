@@ -148,8 +148,8 @@ export default function TodoModal({ isOpen, onClose, onSubmit, title, initialDat
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center md:items-center bg-black bg-opacity-50 backdrop-blur-sm">
-      <div className="bg-background rounded-t-2xl md:rounded-xl p-6 w-full max-w-md md:max-w-lg max-h-[90vh] overflow-y-auto shadow-lg transform translate-y-0 md:scale-100 transition-all duration-300 ease-out">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4">
+      <div className="bg-background rounded-xl p-6 w-full max-w-md md:max-w-lg max-h-[85vh] overflow-y-auto shadow-lg transform transition-all duration-300 ease-out">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-bold text-foreground">{title}</h3>
           <button onClick={onClose} className="p-2 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground">

@@ -589,8 +589,8 @@ export default function TodoList() {
 
       {/* Create Todo Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end md:items-center justify-center z-50">
-          <div className="bg-background rounded-t-2xl md:rounded-2xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto slide-up">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-background rounded-xl w-full max-w-md max-h-[85vh] overflow-y-auto shadow-lg">
             <div className="sticky top-0 bg-background border-b border-border px-4 py-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-foreground">Create New Todo</h3>
               <button

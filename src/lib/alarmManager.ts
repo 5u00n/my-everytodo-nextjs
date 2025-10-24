@@ -84,8 +84,10 @@ class AlarmManager {
       const notificationOptions: ExtendedNotificationOptions = {
         body: alarm.body || 'Your todo alarm is ringing!',
         requireInteraction: true,
-        vibrate: [200, 100, 200, 100, 200, 100, 200],
+        vibrate: [300, 200, 300, 200, 300, 200, 300, 200, 300], // Enhanced for locked phones
         tag: alarm.id,
+        silent: false, // Ensure sound plays even when locked
+        renotify: true, // Replace previous notifications
         actions: [
           { action: 'complete', title: 'Mark Done', icon: '/icon-192.svg' },
           { action: 'snooze', title: 'Snooze 5min', icon: '/icon-192.svg' },
@@ -107,8 +109,10 @@ class AlarmManager {
       await notificationService.showNotification(alarm.title, {
         body: alarm.body || 'Your todo alarm is ringing!',
         requireInteraction: true,
-        vibrate: [200, 100, 200, 100, 200, 100, 200],
+        vibrate: [300, 200, 300, 200, 300, 200, 300, 200, 300], // Enhanced for locked phones
         tag: alarm.id,
+        silent: false, // Ensure sound plays even when locked
+        renotify: true, // Replace previous notifications
         actions: [
           { action: 'complete', title: 'Mark Done', icon: '/icon-192.svg' },
           { action: 'snooze', title: 'Snooze 5min', icon: '/icon-192.svg' }

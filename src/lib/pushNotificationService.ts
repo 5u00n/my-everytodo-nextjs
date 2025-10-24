@@ -180,13 +180,18 @@ class PushNotificationService {
     title: string,
     body?: string
   ): Promise<void> {
+    // Enhanced vibration pattern for locked phones
+    const vibrationPattern = [300, 200, 300, 200, 300, 200, 300, 200, 300];
+    
     await this.showLocalNotification(`🔔 ${title}`, {
       body: body || 'Your todo alarm is ringing!',
       icon: '/icon-192.svg',
       badge: '/icon-192.svg',
       tag: `alarm-${todoId}`,
       requireInteraction: true,
-      vibrate: [200, 100, 200, 100, 200, 100, 200],
+      vibrate: vibrationPattern,
+      silent: false, // Ensure sound plays even when phone is locked
+      renotify: true, // Replace previous notifications
       actions: [
         { action: 'complete', title: 'Mark Done', icon: '/icon-192.svg' },
         { action: 'snooze', title: 'Snooze 5min', icon: '/icon-192.svg' },
@@ -198,6 +203,53 @@ class PushNotificationService {
         timestamp: Date.now()
       }
     });
+    
+    // Schedule multiple notifications for persistent alarm effect
+    this.scheduleRepeatingNotifications(todoId, title, body);
+  }
+
+  // Schedule repeating notifications for persistent alarm
+  private scheduleRepeatingNotifications(todoId: string, title: string, body?: string) {
+    const vibrationPattern = [300, 200, 300, 200, 300, 200, 300, 200, 300];
+    
+    // Show additional notifications every 10 seconds for 2 minutes
+    let repeatCount = 0;
+    const maxRepeats = 12; // 2 minutes worth
+    
+    const repeatInterval = setInterval(async () => {
+      if (repeatCount >= maxRepeats) {
+        clearInterval(repeatInterval);
+        return;
+      }
+      
+      try {
+        await this.showLocalNotification(`🔔 ${title}`, {
+          body: body || 'Your todo alarm is ringing!',
+          icon: '/icon-192.svg',
+          badge: '/icon-192.svg',
+          tag: `alarm-${todoId}-repeat-${repeatCount}`,
+          requireInteraction: true,
+          vibrate: vibrationPattern,
+          silent: false,
+          renotify: true,
+          actions: [
+            { action: 'complete', title: 'Mark Done', icon: '/icon-192.svg' },
+            { action: 'snooze', title: 'Snooze 5min', icon: '/icon-192.svg' },
+            { action: 'dismiss', title: 'Dismiss', icon: '/icon-192.svg' }
+          ],
+          data: {
+            todoId,
+            type: 'alarm',
+            timestamp: Date.now(),
+            repeat: repeatCount
+          }
+        });
+      } catch (error) {
+        console.log('Error showing repeat notification:', error);
+      }
+      
+      repeatCount++;
+    }, 10000); // Every 10 seconds
   }
 
   // Check if push notifications are supported

@@ -464,8 +464,8 @@ export default function CalendarView() {
 
       {/* Selected Date Details Modal */}
       {selectedDate && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end md:items-center justify-center z-50">
-          <div className="bg-card rounded-t-2xl md:rounded-2xl w-full max-w-md mx-4 max-h-[80vh] overflow-y-auto slide-up">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-card rounded-xl w-full max-w-md max-h-[85vh] overflow-y-auto shadow-lg">
             <div className="sticky top-0 bg-card border-b border-border px-4 py-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold">
                 {format(selectedDate, 'EEEE, MMM d, yyyy')}

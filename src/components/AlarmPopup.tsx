@@ -168,31 +168,34 @@ export default function AlarmPopup({
       // Store oscillator for potential stopping
       setActiveOscillator(oscillator);
       
-      // Create traditional alarm sound pattern (beep-beep-beep)
-      const beepDuration = 0.3; // 300ms beep
-      const pauseDuration = 0.2; // 200ms pause
-      const cycleDuration = beepDuration + pauseDuration; // 500ms total cycle
+      // Create realistic phone ringing pattern (ring-ring-pause)
+      const ringDuration = 0.4; // 400ms ring
+      const pauseDuration = 0.2; // 200ms pause between rings
+      const longPause = 0.8; // 800ms pause between ring cycles
+      const cycleDuration = (ringDuration * 2) + pauseDuration + longPause; // Total cycle time
       const cycles = Math.floor(repeatDurationSeconds / cycleDuration);
       
-      // Traditional alarm frequencies (more pleasant)
-      const lowFreq = 440; // A4 note
-      const highFreq = 523; // C5 note
+      // Phone ring frequencies (more realistic)
+      const ringFreq1 = 800; // Higher frequency for first ring
+      const ringFreq2 = 600; // Lower frequency for second ring
       
       for (let i = 0; i < cycles; i++) {
         const cycleStart = context.currentTime + (i * cycleDuration);
         
-        // First beep (low tone)
-        oscillator.frequency.setValueAtTime(lowFreq, cycleStart);
-        gainNode.gain.setValueAtTime(0.4, cycleStart);
-        gainNode.gain.setValueAtTime(0.4, cycleStart + beepDuration);
-        gainNode.gain.setValueAtTime(0.01, cycleStart + beepDuration + 0.01);
+        // First ring (high tone)
+        oscillator.frequency.setValueAtTime(ringFreq1, cycleStart);
+        gainNode.gain.setValueAtTime(0.6, cycleStart);
+        gainNode.gain.setValueAtTime(0.6, cycleStart + ringDuration);
+        gainNode.gain.setValueAtTime(0.01, cycleStart + ringDuration + 0.01);
         
-        // Second beep (high tone) - start after pause
-        const secondBeepStart = cycleStart + beepDuration + pauseDuration;
-        oscillator.frequency.setValueAtTime(highFreq, secondBeepStart);
-        gainNode.gain.setValueAtTime(0.4, secondBeepStart);
-        gainNode.gain.setValueAtTime(0.4, secondBeepStart + beepDuration);
-        gainNode.gain.setValueAtTime(0.01, secondBeepStart + beepDuration + 0.01);
+        // Short pause
+        const pauseStart = cycleStart + ringDuration + pauseDuration;
+        
+        // Second ring (low tone)
+        oscillator.frequency.setValueAtTime(ringFreq2, pauseStart);
+        gainNode.gain.setValueAtTime(0.6, pauseStart);
+        gainNode.gain.setValueAtTime(0.6, pauseStart + ringDuration);
+        gainNode.gain.setValueAtTime(0.01, pauseStart + ringDuration + 0.01);
       }
       
       oscillator.start(context.currentTime);
@@ -206,10 +209,11 @@ export default function AlarmPopup({
         setActiveOscillator(null);
       }, repeatDurationMs);
       
-      // Add gentler vibration pattern with timeout control
+      // Enhanced vibration pattern for locked phones
       if ('vibrate' in navigator && !isMuted) {
         const startVibration = () => {
-          const vibrationPattern = [150, 100, 150, 100, 150, 100]; // 1-second pattern
+          // More aggressive vibration pattern for locked phones
+          const vibrationPattern = [300, 200, 300, 200, 300, 200, 300, 200, 300];
           navigator.vibrate(vibrationPattern);
           
           // Schedule next vibration cycle
@@ -217,7 +221,7 @@ export default function AlarmPopup({
             if (!isMuted) {
               startVibration();
             }
-          }, 1000);
+          }, 2000); // Every 2 seconds
           
           setVibrationId(vibrationTimeout as unknown as number);
         };
@@ -268,85 +272,113 @@ export default function AlarmPopup({
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full animate-pulse">
-        {/* Header with alarm icon */}
-        <div className="bg-red-500 text-white p-6 rounded-t-2xl text-center">
-          <div className="flex items-center justify-center space-x-3">
-            <Bell className={`w-8 h-8 ${isPlaying ? 'animate-bounce' : ''}`} />
-            <h2 className="text-2xl font-bold">ALARM</h2>
+    <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+      <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 rounded-3xl shadow-2xl max-w-md w-full border border-gray-200/50 dark:border-gray-700/50 overflow-hidden">
+        {/* Elegant Header with gradient and glow effect */}
+        <div className="relative bg-gradient-to-r from-red-500 via-red-600 to-red-700 text-white p-8 text-center overflow-hidden">
+          {/* Animated background pattern */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-pulse"></div>
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
+          
+          <div className="relative flex items-center justify-center space-x-4">
+            <div className={`p-3 rounded-full bg-white/20 backdrop-blur-sm ${isPlaying ? 'animate-pulse' : ''}`}>
+              <Bell className={`w-8 h-8 ${isPlaying ? 'animate-bounce' : ''}`} />
+            </div>
+            <div>
+              <h2 className="text-3xl font-bold tracking-wide">ALARM</h2>
+              <p className="text-red-100 text-sm font-medium">Time to wake up!</p>
+            </div>
             <button
               onClick={toggleMute}
-              className="p-2 hover:bg-red-600 rounded-full transition-colors"
+              className="p-3 hover:bg-white/20 rounded-full transition-all duration-200 hover:scale-110"
               title={isMuted ? 'Unmute' : 'Mute'}
             >
-              {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+              {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
             </button>
           </div>
         </div>
 
-        {/* Content */}
-        <div className="p-6">
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-            {title}
-          </h3>
-          {body && (
-            <p className="text-gray-600 dark:text-gray-300 mb-4">
-              {body}
-            </p>
-          )}
+        {/* Content with elegant spacing */}
+        <div className="p-8">
+          <div className="text-center mb-6">
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              {title}
+            </h3>
+            {body && (
+              <p className="text-gray-600 dark:text-gray-300 text-lg leading-relaxed">
+                {body}
+              </p>
+            )}
+          </div>
 
-          {/* Alarm Status */}
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 mb-6">
-            <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center space-x-2">
-                <Bell className={`w-4 h-4 ${isPlaying ? 'animate-bounce text-red-600' : 'text-red-500'}`} />
-                <span className="font-medium text-red-800 dark:text-red-200">
+          {/* Elegant status card with glassmorphism */}
+          <div className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 border border-red-200/50 dark:border-red-800/50 rounded-2xl p-6 mb-8 backdrop-blur-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <div className={`p-2 rounded-full bg-red-100 dark:bg-red-900/30 ${isPlaying ? 'animate-pulse' : ''}`}>
+                  <Bell className={`w-5 h-5 ${isPlaying ? 'animate-bounce text-red-600' : 'text-red-500'}`} />
+                </div>
+                <span className="font-semibold text-red-800 dark:text-red-200 text-lg">
                   Alarm Active
                 </span>
               </div>
-              <div className="text-red-600 dark:text-red-400">
-                {currentRepeat}/{repeatCount} repeats
+              <div className="text-right">
+                <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+                  {currentRepeat}/{repeatCount}
+                </div>
+                <div className="text-xs text-red-600 dark:text-red-400 font-medium">
+                  repeats
+                </div>
               </div>
             </div>
-            <div className="mt-2 text-xs text-red-700 dark:text-red-300">
-              Duration: {duration} minutes • Remaining: {Math.floor(remainingTime / 60)}:{(remainingTime % 60).toString().padStart(2, '0')}
+            
+            {/* Progress bar */}
+            <div className="w-full bg-red-200 dark:bg-red-800/30 rounded-full h-2 mb-3">
+              <div 
+                className="bg-gradient-to-r from-red-500 to-red-600 h-2 rounded-full transition-all duration-500"
+                style={{ width: `${(currentRepeat / repeatCount) * 100}%` }}
+              ></div>
+            </div>
+            
+            <div className="flex justify-between text-sm text-red-700 dark:text-red-300 font-medium">
+              <span>Duration: {duration} min</span>
+              <span>Remaining: {Math.floor(remainingTime / 60)}:{(remainingTime % 60).toString().padStart(2, '0')}</span>
             </div>
           </div>
 
-          {/* Action buttons */}
-          <div className="space-y-3">
+          {/* Elegant action buttons */}
+          <div className="space-y-4">
             <button
               onClick={handleComplete}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center space-x-2 transition-colors"
+              className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-4 px-6 rounded-2xl flex items-center justify-center space-x-3 transition-all duration-200 hover:scale-105 hover:shadow-lg shadow-green-500/25"
             >
-              <CheckCircle className="w-5 h-5" />
-              <span>Mark as Complete</span>
+              <CheckCircle className="w-6 h-6" />
+              <span className="text-lg">Mark as Complete</span>
             </button>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={() => handleSnooze(5)}
-                className="bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition-colors"
+                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold py-3 px-4 rounded-xl flex items-center justify-center space-x-2 transition-all duration-200 hover:scale-105 hover:shadow-lg shadow-amber-500/25"
               >
-                <Clock className="w-4 h-4" />
+                <Clock className="w-5 h-5" />
                 <span>Snooze 5min</span>
               </button>
               
               <button
                 onClick={() => handleSnooze(10)}
-                className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition-colors"
+                className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold py-3 px-4 rounded-xl flex items-center justify-center space-x-2 transition-all duration-200 hover:scale-105 hover:shadow-lg shadow-orange-500/25"
               >
-                <Clock className="w-4 h-4" />
+                <Clock className="w-5 h-5" />
                 <span>Snooze 10min</span>
               </button>
             </div>
 
             <button
               onClick={handleDismiss}
-              className="w-full bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition-colors"
+              className="w-full bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-semibold py-3 px-6 rounded-xl flex items-center justify-center space-x-2 transition-all duration-200 hover:scale-105 hover:shadow-lg shadow-gray-500/25"
             >
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5" />
               <span>Dismiss</span>
             </button>
           </div>
