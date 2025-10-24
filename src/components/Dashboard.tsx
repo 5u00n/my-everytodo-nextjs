@@ -11,6 +11,7 @@ import TodoModal from './TodoModal';
 import { format, isToday, isTomorrow, addDays, isWithinInterval, isPast } from 'date-fns';
 import alarmManager from '@/lib/alarmManager';
 import pushNotificationService from '@/lib/pushNotificationService';
+import notificationService from '@/lib/notificationService';
 import { database } from '@/lib/firebase';
 import { ref, onValue, off, update, remove, push, set } from 'firebase/database';
 import { Todo } from '@/types';
@@ -31,7 +32,9 @@ import {
   Bell,
   CheckCircle2,
   Circle,
-  Download
+  Download,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 
 type View = 'home' | 'todos' | 'calendar' | 'reports';
@@ -48,6 +51,7 @@ export default function Dashboard() {
   const [isPWAInstalled, setIsPWAInstalled] = useState(false);
   const [showAlarmPopup, setShowAlarmPopup] = useState(false);
   const [alarmData, setAlarmData] = useState<{title: string, body?: string, todoId?: string} | null>(null);
+  const [alarmSoundType, setAlarmSoundType] = useState<'normal' | 'extreme'>('normal');
 
   // Check if PWA is installed
   useEffect(() => {
@@ -75,6 +79,15 @@ export default function Dashboard() {
       window.removeEventListener('beforeinstallprompt', () => {});
       window.removeEventListener('appinstalled', () => {});
     };
+  }, []);
+
+  // Load alarm sound type from localStorage
+  useEffect(() => {
+    const savedSoundType = localStorage.getItem('alarmSoundType');
+    if (savedSoundType === 'normal' || savedSoundType === 'extreme') {
+      setAlarmSoundType(savedSoundType);
+      notificationService.setAlarmSoundType(savedSoundType);
+    }
   }, []);
 
   // Load todos from Firebase
@@ -220,6 +233,13 @@ export default function Dashboard() {
   // Close todo modal
   const closeTodoModal = () => {
     setShowTodoModal(false);
+  };
+
+  // Toggle alarm sound type
+  const toggleAlarmSoundType = () => {
+    const newType = alarmSoundType === 'normal' ? 'extreme' : 'normal';
+    setAlarmSoundType(newType);
+    notificationService.setAlarmSoundType(newType);
   };
 
   // Alarm popup handlers
@@ -622,6 +642,17 @@ export default function Dashboard() {
                 <Download className="w-5 h-5" />
               </button>
             )}
+            <button
+              onClick={toggleAlarmSoundType}
+              className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+              title={`Alarm Sound: ${alarmSoundType === 'normal' ? 'Normal' : 'Extreme'}`}
+            >
+              {alarmSoundType === 'normal' ? (
+                <Volume2 className="w-5 h-5" />
+              ) : (
+                <VolumeX className="w-5 h-5 text-red-500" />
+              )}
+            </button>
             <ThemeToggle />
             <button
               onClick={handleSignOut}
@@ -680,6 +711,7 @@ export default function Dashboard() {
         todoId={alarmData?.todoId}
         duration={5}
         repeatCount={3}
+        alarmSoundType={alarmSoundType}
         onDismiss={handleAlarmDismiss}
         onComplete={handleAlarmComplete}
         onSnooze={handleAlarmSnooze}

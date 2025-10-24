@@ -10,6 +10,7 @@ interface AlarmPopupProps {
   todoId?: string;
   duration?: number; // Duration in minutes
   repeatCount?: number; // Number of times to repeat
+  alarmSoundType?: 'normal' | 'extreme'; // Alarm sound type
   onDismiss: () => void;
   onComplete?: (todoId: string) => void;
   onSnooze?: (todoId: string, minutes: number) => void;
@@ -22,6 +23,7 @@ export default function AlarmPopup({
   todoId,
   duration = 5, // Default 5 minutes
   repeatCount = 3, // Default 3 repeats
+  alarmSoundType = 'normal', // Default to normal alarm sound
   onDismiss,
   onComplete,
   onSnooze
@@ -164,47 +166,12 @@ export default function AlarmPopup({
       const repeatDurationMs = (duration * 60 * 1000) / repeatCount; // Duration per repeat in ms
       const repeatDurationSeconds = repeatDurationMs / 1000;
       
-      const oscillator = context.createOscillator();
-      const gainNode = context.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(context.destination);
-      
-      // Store oscillator for potential stopping
-      setActiveOscillator(oscillator);
-      
-      // Create realistic phone ringing pattern (ring-ring-pause)
-      const ringDuration = 0.4; // 400ms ring
-      const pauseDuration = 0.2; // 200ms pause between rings
-      const longPause = 0.8; // 800ms pause between ring cycles
-      const cycleDuration = (ringDuration * 2) + pauseDuration + longPause; // Total cycle time
-      const cycles = Math.floor(repeatDurationSeconds / cycleDuration);
-      
-      // Phone ring frequencies (more realistic)
-      const ringFreq1 = 800; // Higher frequency for first ring
-      const ringFreq2 = 600; // Lower frequency for second ring
-      
-      for (let i = 0; i < cycles; i++) {
-        const cycleStart = context.currentTime + (i * cycleDuration);
-        
-        // First ring (high tone)
-        oscillator.frequency.setValueAtTime(ringFreq1, cycleStart);
-        gainNode.gain.setValueAtTime(0.6, cycleStart);
-        gainNode.gain.setValueAtTime(0.6, cycleStart + ringDuration);
-        gainNode.gain.setValueAtTime(0.01, cycleStart + ringDuration + 0.01);
-        
-        // Short pause
-        const pauseStart = cycleStart + ringDuration + pauseDuration;
-        
-        // Second ring (low tone)
-        oscillator.frequency.setValueAtTime(ringFreq2, pauseStart);
-        gainNode.gain.setValueAtTime(0.6, pauseStart);
-        gainNode.gain.setValueAtTime(0.6, pauseStart + ringDuration);
-        gainNode.gain.setValueAtTime(0.01, pauseStart + ringDuration + 0.01);
+      // Play alarm sound based on type
+      if (alarmSoundType === 'extreme') {
+        playAggressiveWakeUpSound(context, repeatDurationSeconds);
+      } else {
+        playNormalWakeUpSound(context, repeatDurationSeconds);
       }
-      
-      oscillator.start(context.currentTime);
-      oscillator.stop(context.currentTime + repeatDurationSeconds);
       
       setIsPlaying(true);
       
@@ -219,7 +186,7 @@ export default function AlarmPopup({
         const startVibration = () => {
           try {
             // More aggressive vibration pattern for locked phones
-            const vibrationPattern = [300, 200, 300, 200, 300, 200, 300, 200, 300];
+            const vibrationPattern = [500, 200, 500, 200, 500, 200, 500, 200, 500];
             navigator.vibrate(vibrationPattern);
             
             // Schedule next vibration cycle
@@ -227,7 +194,7 @@ export default function AlarmPopup({
               if (!isMuted) {
                 startVibration();
               }
-            }, 2000); // Every 2 seconds
+            }, 1500); // Every 1.5 seconds for more aggressive pattern
             
             setVibrationId(vibrationTimeout as unknown as number);
           } catch (error) {
@@ -240,6 +207,158 @@ export default function AlarmPopup({
     } catch (error) {
       console.log('Audio alarm not supported:', error);
     }
+  };
+
+  const playNormalWakeUpSound = (context: AudioContext, duration: number) => {
+    // Create traditional alarm sound pattern (beep-beep-beep)
+    const beepDuration = 0.3; // 300ms beep
+    const pauseDuration = 0.2; // 200ms pause
+    const cycleDuration = beepDuration + pauseDuration; // 500ms total cycle
+    const cycles = Math.floor(duration / cycleDuration);
+    
+    // Traditional alarm frequencies (pleasant but noticeable)
+    const lowFreq = 440; // A4 note
+    const highFreq = 523; // C5 note
+    
+    // Create oscillators array to store references
+    const oscillators: OscillatorNode[] = [];
+    
+    for (let i = 0; i < cycles; i++) {
+      const cycleStart = context.currentTime + (i * cycleDuration);
+      
+      // Create oscillator for first beep (low tone)
+      const oscillator1 = context.createOscillator();
+      const gainNode1 = context.createGain();
+      
+      oscillator1.connect(gainNode1);
+      gainNode1.connect(context.destination);
+      
+      oscillator1.type = 'sine'; // Gentle sine wave
+      oscillator1.frequency.setValueAtTime(lowFreq, cycleStart);
+      gainNode1.gain.setValueAtTime(0.4, cycleStart);
+      gainNode1.gain.setValueAtTime(0.4, cycleStart + beepDuration);
+      gainNode1.gain.setValueAtTime(0.01, cycleStart + beepDuration + 0.01);
+      
+      oscillator1.start(cycleStart);
+      oscillator1.stop(cycleStart + beepDuration);
+      
+      // Store first oscillator for potential stopping
+      if (i === 0) {
+        oscillators.push(oscillator1);
+      }
+      
+      // Create oscillator for second beep (high tone) - start after pause
+      const secondBeepStart = cycleStart + beepDuration + pauseDuration;
+      const oscillator2 = context.createOscillator();
+      const gainNode2 = context.createGain();
+      
+      oscillator2.connect(gainNode2);
+      gainNode2.connect(context.destination);
+      
+      oscillator2.type = 'sine'; // Gentle sine wave
+      oscillator2.frequency.setValueAtTime(highFreq, secondBeepStart);
+      gainNode2.gain.setValueAtTime(0.4, secondBeepStart);
+      gainNode2.gain.setValueAtTime(0.4, secondBeepStart + beepDuration);
+      gainNode2.gain.setValueAtTime(0.01, secondBeepStart + beepDuration + 0.01);
+      
+      oscillator2.start(secondBeepStart);
+      oscillator2.stop(secondBeepStart + beepDuration);
+    }
+    
+    // Store first oscillator for potential stopping
+    if (oscillators.length > 0) {
+      setActiveOscillator(oscillators[0]);
+    }
+  };
+
+  const playAggressiveWakeUpSound = (context: AudioContext, duration: number) => {
+    // Create multiple oscillators for chaotic, wake-up inducing sound
+    const oscillators: OscillatorNode[] = [];
+    const gainNodes: GainNode[] = [];
+    
+    // Create 6 oscillators with different frequencies for maximum chaos
+    for (let i = 0; i < 6; i++) {
+      const oscillator = context.createOscillator();
+      const gainNode = context.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(context.destination);
+      
+      oscillators.push(oscillator);
+      gainNodes.push(gainNode);
+    }
+    
+    // Set up chaotic frequency patterns
+    const frequencies = [150, 300, 600, 900, 1200, 1500]; // Low to high frequencies
+    const startTime = context.currentTime;
+    
+    oscillators.forEach((oscillator, index) => {
+      oscillator.type = 'sawtooth'; // More aggressive than sine wave
+      oscillator.frequency.setValueAtTime(frequencies[index], startTime);
+      
+      // Create chaotic frequency modulation
+      for (let t = 0; t < duration; t += 0.05) {
+        const randomFreq = frequencies[index] + (Math.random() - 0.5) * 300;
+        oscillator.frequency.setValueAtTime(Math.max(50, randomFreq), startTime + t);
+      }
+      
+      // Aggressive volume envelope with random modulation
+      gainNodes[index].gain.setValueAtTime(0, startTime);
+      gainNodes[index].gain.linearRampToValueAtTime(0.5, startTime + 0.05); // Very quick attack
+      
+      // Random volume modulation for chaos
+      for (let t = 0.05; t < duration - 0.05; t += 0.1) {
+        const randomVolume = 0.3 + Math.random() * 0.4; // 0.3 to 0.7
+        gainNodes[index].gain.setValueAtTime(randomVolume, startTime + t);
+      }
+      
+      gainNodes[index].gain.linearRampToValueAtTime(0, startTime + duration);
+      
+      oscillator.start(startTime);
+      oscillator.stop(startTime + duration);
+    });
+    
+    // Store first oscillator for potential stopping
+    setActiveOscillator(oscillators[0]);
+    
+    // Add emergency siren effect after 2 seconds
+    setTimeout(() => {
+      playEmergencySiren(context, duration - 2);
+    }, 2000);
+  };
+
+  const playEmergencySiren = (context: AudioContext, duration: number) => {
+    const oscillator = context.createOscillator();
+    const gainNode = context.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(context.destination);
+    
+    oscillator.type = 'square'; // Harsh square wave
+    const startTime = context.currentTime;
+    
+    // Create siren effect (rising and falling frequency)
+    const sirenDuration = duration;
+    const cycles = 8; // Number of siren cycles
+    
+    for (let i = 0; i < cycles; i++) {
+      const cycleStart = startTime + (i * sirenDuration / cycles);
+      const cycleDuration = sirenDuration / cycles;
+      
+      // Rising frequency
+      oscillator.frequency.setValueAtTime(200, cycleStart);
+      oscillator.frequency.linearRampToValueAtTime(1200, cycleStart + cycleDuration / 2);
+      
+      // Falling frequency
+      oscillator.frequency.linearRampToValueAtTime(200, cycleStart + cycleDuration);
+      
+      // Volume envelope
+      gainNode.gain.setValueAtTime(0.6, cycleStart);
+      gainNode.gain.setValueAtTime(0.6, cycleStart + cycleDuration);
+    }
+    
+    oscillator.start(startTime);
+    oscillator.stop(startTime + sirenDuration);
   };
 
   const handleComplete = () => {

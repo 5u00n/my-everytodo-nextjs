@@ -3,12 +3,28 @@
 class NotificationService {
   private permission: NotificationPermission = 'default';
   private isSupported: boolean = false;
+  private userHasInteracted: boolean = false;
+  private alarmSoundType: 'normal' | 'extreme' = 'normal';
 
   constructor() {
     if (typeof window !== 'undefined') {
       this.isSupported = 'Notification' in window;
       this.permission = Notification.permission;
+      
+      // Track user interaction for vibration
+      this.setupUserInteractionTracking();
     }
+  }
+
+  private setupUserInteractionTracking() {
+    const trackInteraction = () => {
+      this.userHasInteracted = true;
+    };
+
+    // Listen for any user interaction
+    document.addEventListener('click', trackInteraction, { once: true });
+    document.addEventListener('touchstart', trackInteraction, { once: true });
+    document.addEventListener('keydown', trackInteraction, { once: true });
   }
 
   async requestPermission(): Promise<NotificationPermission> {
@@ -205,70 +221,189 @@ class NotificationService {
         audioContext.resume();
       }
       
-      // Create traditional alarm sound pattern (beep-beep-beep)
-      const duration = 3; // 3 seconds for notification
-      const beepDuration = 0.3; // 300ms beep
-      const pauseDuration = 0.2; // 200ms pause
-      const cycleDuration = beepDuration + pauseDuration; // 500ms total cycle
-      const cycles = Math.floor(duration / cycleDuration);
-      
-      // Traditional alarm frequencies (more pleasant)
-      const lowFreq = 440; // A4 note
-      const highFreq = 523; // C5 note
-      
-      for (let i = 0; i < cycles; i++) {
-        const cycleStart = audioContext.currentTime + (i * cycleDuration);
-        
-        // Create oscillator for first beep (low tone)
-        const oscillator1 = audioContext.createOscillator();
-        const gainNode1 = audioContext.createGain();
-        
-        oscillator1.connect(gainNode1);
-        gainNode1.connect(audioContext.destination);
-        
-        oscillator1.frequency.setValueAtTime(lowFreq, cycleStart);
-        gainNode1.gain.setValueAtTime(0.3, cycleStart);
-        gainNode1.gain.setValueAtTime(0.3, cycleStart + beepDuration);
-        gainNode1.gain.setValueAtTime(0.01, cycleStart + beepDuration + 0.01);
-        
-        oscillator1.start(cycleStart);
-        oscillator1.stop(cycleStart + beepDuration);
-        
-        // Create oscillator for second beep (high tone) - start after pause
-        const secondBeepStart = cycleStart + beepDuration + pauseDuration;
-        const oscillator2 = audioContext.createOscillator();
-        const gainNode2 = audioContext.createGain();
-        
-        oscillator2.connect(gainNode2);
-        gainNode2.connect(audioContext.destination);
-        
-        oscillator2.frequency.setValueAtTime(highFreq, secondBeepStart);
-        gainNode2.gain.setValueAtTime(0.3, secondBeepStart);
-        gainNode2.gain.setValueAtTime(0.3, secondBeepStart + beepDuration);
-        gainNode2.gain.setValueAtTime(0.01, secondBeepStart + beepDuration + 0.01);
-        
-        oscillator2.start(secondBeepStart);
-        oscillator2.stop(secondBeepStart + beepDuration);
+      // Play alarm sound based on type
+      if (this.alarmSoundType === 'extreme') {
+        this.playAggressiveAlarmSound(audioContext);
+      } else {
+        this.playNormalAlarmSound(audioContext);
       }
       
-      // Add gentler vibration pattern
-      if ('vibrate' in navigator) {
-        const vibrationPattern = [];
-        const vibrationCycles = Math.ceil(duration / 1); // 1-second vibration cycles
-        
-        for (let i = 0; i < vibrationCycles; i++) {
-          vibrationPattern.push(150, 100, 150, 100, 150, 100); // Shorter, gentler pattern
-        }
-        
-        navigator.vibrate(vibrationPattern);
-      }
+      // Use enhanced vibration for locked screen scenarios
+      this.playLockedScreenVibration();
     } catch (error) {
       console.log('Audio alarm not supported:', error);
     }
   }
 
+  private playNormalAlarmSound(audioContext: AudioContext) {
+    const duration = 3; // 3 seconds for normal alarm
+    
+    // Create traditional alarm sound pattern (beep-beep-beep)
+    const beepDuration = 0.3; // 300ms beep
+    const pauseDuration = 0.2; // 200ms pause
+    const cycleDuration = beepDuration + pauseDuration; // 500ms total cycle
+    const cycles = Math.floor(duration / cycleDuration);
+    
+    // Traditional alarm frequencies (pleasant but noticeable)
+    const lowFreq = 440; // A4 note
+    const highFreq = 523; // C5 note
+    
+    for (let i = 0; i < cycles; i++) {
+      const cycleStart = audioContext.currentTime + (i * cycleDuration);
+      
+      // Create oscillator for first beep (low tone)
+      const oscillator1 = audioContext.createOscillator();
+      const gainNode1 = audioContext.createGain();
+      
+      oscillator1.connect(gainNode1);
+      gainNode1.connect(audioContext.destination);
+      
+      oscillator1.type = 'sine'; // Gentle sine wave
+      oscillator1.frequency.setValueAtTime(lowFreq, cycleStart);
+      gainNode1.gain.setValueAtTime(0.3, cycleStart);
+      gainNode1.gain.setValueAtTime(0.3, cycleStart + beepDuration);
+      gainNode1.gain.setValueAtTime(0.01, cycleStart + beepDuration + 0.01);
+      
+      oscillator1.start(cycleStart);
+      oscillator1.stop(cycleStart + beepDuration);
+      
+      // Create oscillator for second beep (high tone) - start after pause
+      const secondBeepStart = cycleStart + beepDuration + pauseDuration;
+      const oscillator2 = audioContext.createOscillator();
+      const gainNode2 = audioContext.createGain();
+      
+      oscillator2.connect(gainNode2);
+      gainNode2.connect(audioContext.destination);
+      
+      oscillator2.type = 'sine'; // Gentle sine wave
+      oscillator2.frequency.setValueAtTime(highFreq, secondBeepStart);
+      gainNode2.gain.setValueAtTime(0.3, secondBeepStart);
+      gainNode2.gain.setValueAtTime(0.3, secondBeepStart + beepDuration);
+      gainNode2.gain.setValueAtTime(0.01, secondBeepStart + beepDuration + 0.01);
+      
+      oscillator2.start(secondBeepStart);
+      oscillator2.stop(secondBeepStart + beepDuration);
+    }
+  }
+
+  private playAggressiveAlarmSound(audioContext: AudioContext) {
+    const duration = 5; // 5 seconds of aggressive sound
+    
+    // Create multiple oscillators for a chaotic, wake-up inducing sound
+    const oscillators: OscillatorNode[] = [];
+    const gainNodes: GainNode[] = [];
+    
+    // Create 4 oscillators with different frequencies for chaos
+    for (let i = 0; i < 4; i++) {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillators.push(oscillator);
+      gainNodes.push(gainNode);
+    }
+    
+    // Set up chaotic frequency patterns
+    const frequencies = [200, 400, 800, 1200]; // Low to high frequencies
+    const startTime = audioContext.currentTime;
+    
+    oscillators.forEach((oscillator, index) => {
+      oscillator.type = 'sawtooth'; // More aggressive than sine wave
+      oscillator.frequency.setValueAtTime(frequencies[index], startTime);
+      
+      // Create chaotic frequency modulation
+      for (let t = 0; t < duration; t += 0.1) {
+        const randomFreq = frequencies[index] + (Math.random() - 0.5) * 200;
+        oscillator.frequency.setValueAtTime(randomFreq, startTime + t);
+      }
+      
+      // Aggressive volume envelope
+      gainNodes[index].gain.setValueAtTime(0, startTime);
+      gainNodes[index].gain.linearRampToValueAtTime(0.4, startTime + 0.1); // Quick attack
+      gainNodes[index].gain.setValueAtTime(0.4, startTime + duration - 0.1);
+      gainNodes[index].gain.linearRampToValueAtTime(0, startTime + duration); // Quick release
+      
+      oscillator.start(startTime);
+      oscillator.stop(startTime + duration);
+    });
+    
+    // Add additional chaotic elements
+    setTimeout(() => {
+      this.playFireAlarmSound(audioContext);
+    }, 2000);
+  }
+
+  private playFireAlarmSound(audioContext: AudioContext) {
+    const duration = 3;
+    const startTime = audioContext.currentTime;
+    
+    // Create fire alarm pattern (rapid beeping)
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.type = 'square'; // Harsh square wave
+    oscillator.frequency.setValueAtTime(1000, startTime); // High frequency
+    
+    // Rapid on/off pattern like fire alarm
+    const beepDuration = 0.1; // 100ms beeps
+    const pauseDuration = 0.1; // 100ms pauses
+    const cycleDuration = beepDuration + pauseDuration;
+    const cycles = Math.floor(duration / cycleDuration);
+    
+    for (let i = 0; i < cycles; i++) {
+      const cycleStart = startTime + (i * cycleDuration);
+      
+      // Beep on
+      gainNode.gain.setValueAtTime(0.5, cycleStart);
+      gainNode.gain.setValueAtTime(0.5, cycleStart + beepDuration);
+      
+      // Beep off
+      gainNode.gain.setValueAtTime(0.01, cycleStart + beepDuration + 0.01);
+      gainNode.gain.setValueAtTime(0.01, cycleStart + cycleDuration);
+    }
+    
+    oscillator.start(startTime);
+    oscillator.stop(startTime + duration);
+  }
+
   cancelNotification(timeoutId: number) {
     clearTimeout(timeoutId as unknown as NodeJS.Timeout);
+  }
+
+  // Enhanced vibration for locked screen scenarios
+  private playLockedScreenVibration() {
+    if ('vibrate' in navigator && this.userHasInteracted) {
+      try {
+        // More aggressive vibration pattern for locked screens
+        const lockedScreenPattern = [
+          500, 200, 500, 200, 500, 200,  // Long vibrations
+          200, 100, 200, 100, 200, 100,  // Short vibrations
+          500, 200, 500, 200, 500, 200   // Long vibrations again
+        ];
+        
+        navigator.vibrate(lockedScreenPattern);
+        
+        // Schedule additional vibration cycles for persistent effect
+        setTimeout(() => {
+          if (this.userHasInteracted) {
+            navigator.vibrate([300, 150, 300, 150, 300]);
+          }
+        }, 3000);
+        
+        setTimeout(() => {
+          if (this.userHasInteracted) {
+            navigator.vibrate([200, 100, 200, 100, 200]);
+          }
+        }, 6000);
+      } catch (error) {
+        // Ignore vibration errors
+      }
+    }
   }
 
   // Check if notifications are supported and permitted
@@ -278,6 +413,26 @@ class NotificationService {
 
   get permissionStatus(): NotificationPermission {
     return this.permission;
+  }
+
+  // Alarm sound type methods
+  setAlarmSoundType(type: 'normal' | 'extreme') {
+    this.alarmSoundType = type;
+    // Save to localStorage for persistence
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('alarmSoundType', type);
+    }
+  }
+
+  getAlarmSoundType(): 'normal' | 'extreme' {
+    // Load from localStorage if available
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('alarmSoundType');
+      if (saved === 'normal' || saved === 'extreme') {
+        this.alarmSoundType = saved;
+      }
+    }
+    return this.alarmSoundType;
   }
 }
 
