@@ -1,0 +1,19 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="modernGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366F1;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#8B5CF6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#EC4899;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Rounded square background -->
+  <rect width="512" height="512" rx="80" fill="url(#modernGradient)"/>
+  
+  <!-- Abstract checkmark shape -->
+  <path d="M152 256 Q192 224 232 256 L320 352 Q360 384 400 352" stroke="white" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  
+  <!-- Floating elements -->
+  <circle cx="372" cy="160" r="16" fill="white" opacity="0.6"/>
+  <circle cx="140" cy="372" r="12" fill="white" opacity="0.4"/>
+</svg>

@@ -6,6 +6,7 @@ import pushNotificationService from './pushNotificationService';
 // Extended notification options with vibrate and actions support
 interface ExtendedNotificationOptions extends NotificationOptions {
   vibrate?: number[];
+  renotify?: boolean;
   actions?: Array<{
     action: string;
     title: string;

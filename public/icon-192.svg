@@ -1,10 +1,18 @@
 <svg width="192" height="192" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="192" height="192" rx="24" fill="#3B82F6"/>
-  <rect x="24" y="24" width="144" height="144" rx="16" fill="white"/>
-  <rect x="48" y="64" width="96" height="8" rx="4" fill="#3B82F6"/>
-  <rect x="48" y="80" width="80" height="8" rx="4" fill="#3B82F6"/>
-  <rect x="48" y="96" width="88" height="8" rx="4" fill="#3B82F6"/>
-  <circle cx="64" cy="120" r="8" fill="#10B981"/>
-  <circle cx="96" cy="120" r="8" fill="#EF4444"/>
-  <circle cx="128" cy="120" r="8" fill="#F59E0B"/>
+  <!-- Background circle with gradient -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1D4ED8;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Main background circle -->
+  <circle cx="96" cy="96" r="88" fill="url(#bgGradient)"/>
+  
+  <!-- Simple checkmark -->
+  <path d="M64 96 L80 112 L128 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  
+  <!-- Small accent circle -->
+  <circle cx="140" cy="52" r="12" fill="white" opacity="0.2"/>
 </svg>
