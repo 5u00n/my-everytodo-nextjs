@@ -19,6 +19,7 @@ export function DynamicTextColor({
 }: DynamicTextColorProps) {
   const [textColor, setTextColor] = useState(lightClassName);
   const containerRef = useRef<HTMLDivElement>(null);
+  const lastUpdateTime = useRef<number>(0);
 
   useEffect(() => {
     const sampleBackgroundImage = async () => {
@@ -173,13 +174,14 @@ export function DynamicTextColor({
               // Calculate brightness using perceptual luminance
               const brightness = (0.299 * avgR + 0.587 * avgG + 0.114 * avgB);
               
-              // Calculate brightness-inverted color (same hue, opposite brightness)
-              const brightnessRatio = (255 - brightness) / brightness;
+              // Calculate high-contrast inverted color (same hue, dramatic brightness change)
+              const isBright = brightness > threshold;
+              const contrastMultiplier = isBright ? 0.3 : 2.5; // Much more dramatic contrast
               
-              // Apply the brightness inversion to each RGB channel (optimized)
-              const invertedR = Math.max(0, Math.min(255, avgR * brightnessRatio));
-              const invertedG = Math.max(0, Math.min(255, avgG * brightnessRatio));
-              const invertedB = Math.max(0, Math.min(255, avgB * brightnessRatio));
+              // Apply dramatic brightness inversion to each RGB channel
+              const invertedR = Math.max(0, Math.min(255, avgR * contrastMultiplier));
+              const invertedG = Math.max(0, Math.min(255, avgG * contrastMultiplier));
+              const invertedB = Math.max(0, Math.min(255, avgB * contrastMultiplier));
               
               // Create dynamic text color using the brightness-inverted RGB values
               const dynamicTextColor = `rgb(${Math.round(invertedR)}, ${Math.round(invertedG)}, ${Math.round(invertedB)})`;
@@ -191,12 +193,15 @@ export function DynamicTextColor({
                   ? '2px 2px 4px rgba(0,0,0,0.8)' 
                   : '1px 1px 2px rgba(255,255,255,0.8)';
                 
-                // Apply smooth, slow color transitions
-                containerRef.current.style.transition = 'color 3s ease-in-out, text-shadow 3s ease-in-out';
-                containerRef.current.style.color = dynamicTextColor;
-                containerRef.current.style.textShadow = newTextShadow;
-                
-                // Color applied successfully
+                // Only update if the color actually changed and enough time has passed to prevent flickering
+                const now = Date.now();
+                if (currentColor !== dynamicTextColor && (now - lastUpdateTime.current) > 1000) {
+                  lastUpdateTime.current = now;
+                  // Apply smooth, slow color transitions
+                  containerRef.current.style.transition = 'color 3s ease-in-out, text-shadow 3s ease-in-out';
+                  containerRef.current.style.color = dynamicTextColor;
+                  containerRef.current.style.textShadow = newTextShadow;
+                }
               }
               
               // Visual sampling indicators removed for clean UI
@@ -242,19 +247,25 @@ export function DynamicTextColor({
           if (rgbMatch) {
             const [, r, g, b] = rgbMatch.map(Number);
             const bgBrightness = (0.299 * r + 0.587 * g + 0.114 * b);
-            const brightnessRatio = (255 - bgBrightness) / bgBrightness;
+            const isBright = bgBrightness > threshold;
+            const contrastMultiplier = isBright ? 0.3 : 2.5; // Much more dramatic contrast
             
-            const invertedR = Math.max(0, Math.min(255, r * brightnessRatio));
-            const invertedG = Math.max(0, Math.min(255, g * brightnessRatio));
-            const invertedB = Math.max(0, Math.min(255, b * brightnessRatio));
+            const invertedR = Math.max(0, Math.min(255, r * contrastMultiplier));
+            const invertedG = Math.max(0, Math.min(255, g * contrastMultiplier));
+            const invertedB = Math.max(0, Math.min(255, b * contrastMultiplier));
             const dynamicColor = `rgb(${Math.round(invertedR)}, ${Math.round(invertedG)}, ${Math.round(invertedB)})`;
             
             if (containerRef.current) {
-              containerRef.current.style.transition = 'color 3s ease-in-out, text-shadow 3s ease-in-out';
-              containerRef.current.style.color = dynamicColor;
-              containerRef.current.style.textShadow = bgBrightness > threshold 
-                ? '2px 2px 4px rgba(0,0,0,0.8)' 
-                : '1px 1px 2px rgba(255,255,255,0.8)';
+              const currentColor = containerRef.current.style.color;
+              const now = Date.now();
+              if (currentColor !== dynamicColor && (now - lastUpdateTime.current) > 1000) {
+                lastUpdateTime.current = now;
+                containerRef.current.style.transition = 'color 3s ease-in-out, text-shadow 3s ease-in-out';
+                containerRef.current.style.color = dynamicColor;
+                containerRef.current.style.textShadow = bgBrightness > threshold 
+                  ? '2px 2px 4px rgba(0,0,0,0.8)' 
+                  : '1px 1px 2px rgba(255,255,255,0.8)';
+              }
             }
           } else {
             setTextColor(brightness > threshold ? lightClassName : darkClassName);
