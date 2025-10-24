@@ -34,6 +34,7 @@ class NotificationService {
       requireInteraction?: boolean;
       silent?: boolean;
       vibrate?: number[];
+      renotify?: boolean;
       actions?: Array<{
         action: string;
         title: string;
@@ -47,7 +48,7 @@ class NotificationService {
     }
 
     try {
-      const notificationOptions: NotificationOptions & { actions?: any[]; vibrate?: number[] } = {
+      const notificationOptions: NotificationOptions & { actions?: any[]; vibrate?: number[]; renotify?: boolean } = {
         body: options.body,
         icon: options.icon || '/icon-192.svg',
         badge: options.badge || '/icon-192.svg',
@@ -55,6 +56,7 @@ class NotificationService {
         data: options.data,
         requireInteraction: options.requireInteraction || false,
         silent: options.silent || false,
+        renotify: options.renotify || false,
         actions: options.actions || []
       };
 
