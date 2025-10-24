@@ -278,7 +278,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           </div>
 
           {/* App Stats */}
-          {loading && todos.length === 0 ? (
+          {loading && !appStats ? (
             <div className="macos-card p-6 space-y-4">
               <div className="h-6 w-32 bg-muted/50 rounded-lg animate-pulse mx-auto"></div>
               <div className="grid grid-cols-2 gap-4">
