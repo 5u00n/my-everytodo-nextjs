@@ -376,10 +376,24 @@ export default function CalendarView() {
     );
   };
 
-  if (loading) {
+  // Only show skeleton if we have no todos and are still loading
+  if (loading && todos.length === 0) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-background p-6">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-foreground">Calendar</h1>
+            <div className="flex space-x-2">
+              <div className="h-10 w-24 bg-muted/50 rounded-lg animate-pulse"></div>
+              <div className="h-10 w-10 bg-muted/50 rounded-lg animate-pulse"></div>
+            </div>
+          </div>
+          <div className="grid grid-cols-7 gap-2">
+            {Array.from({ length: 35 }).map((_, i) => (
+              <div key={i} className="h-20 w-full bg-muted/50 rounded-lg animate-pulse"></div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }

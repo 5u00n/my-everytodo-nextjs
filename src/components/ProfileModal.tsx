@@ -278,10 +278,19 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           </div>
 
           {/* App Stats */}
-          {loading ? (
-            <div className="macos-card p-6 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-3"></div>
-              <p className="text-muted-foreground">Loading statistics...</p>
+          {loading && todos.length === 0 ? (
+            <div className="macos-card p-6 space-y-4">
+              <div className="h-6 w-32 bg-muted/50 rounded-lg animate-pulse mx-auto"></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center space-y-2">
+                  <div className="h-8 w-12 bg-muted/50 rounded-lg animate-pulse mx-auto"></div>
+                  <div className="h-4 w-16 bg-muted/50 rounded-lg animate-pulse mx-auto"></div>
+                </div>
+                <div className="text-center space-y-2">
+                  <div className="h-8 w-12 bg-muted/50 rounded-lg animate-pulse mx-auto"></div>
+                  <div className="h-4 w-16 bg-muted/50 rounded-lg animate-pulse mx-auto"></div>
+                </div>
+              </div>
             </div>
           ) : (
             <div className="macos-card p-6">
@@ -387,7 +396,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           {resetProgress && (
             <div className="macos-card p-4 bg-blue-50 border border-blue-200">
               <div className="flex items-center space-x-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                <div className="h-4 w-4 bg-blue-600 rounded-full animate-pulse"></div>
                 <span className="text-blue-800 text-sm">{resetProgress}</span>
               </div>
             </div>

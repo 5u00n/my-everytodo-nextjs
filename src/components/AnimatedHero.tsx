@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Plus, Sun, Moon, Cloud, Star, Zap, Coffee, Clock } from 'lucide-react';
+import { DynamicTextColor } from './DynamicTextColor';
 
 type View = 'home' | 'todos' | 'calendar' | 'reports';
 
@@ -325,12 +326,17 @@ export default function AnimatedHero({
         </div>
         
         {/* Main Content */}
-        <div className="relative z-10 max-w-4xl mx-auto">
+        <DynamicTextColor 
+          className="relative z-10 max-w-4xl mx-auto"
+          lightClassName="text-gray-900"
+          darkClassName="text-white"
+          threshold={100}
+        >
           <div className="text-center mb-8">
             <h2 className="text-3xl md:text-4xl font-bold mb-2">
               {greeting}
             </h2>
-            <p className="text-white/90 text-lg mb-6">
+            <p className="text-lg mb-6 opacity-90">
               {motivationalMessage}
             </p>
           </div>
@@ -341,19 +347,19 @@ export default function AnimatedHero({
               <div className="text-2xl font-bold">
                 {todaysTodos}
               </div>
-              <div className="text-sm text-white/80">Today&apos;s Tasks</div>
+              <div className="text-sm opacity-80">Today&apos;s Tasks</div>
             </div>
             <div className="text-center transform hover:scale-105 transition-all duration-300">
               <div className="text-2xl font-bold">
                 {completedToday}
               </div>
-              <div className="text-sm text-white/80">Completed</div>
+              <div className="text-sm opacity-80">Completed</div>
             </div>
             <div className="text-center transform hover:scale-105 transition-all duration-300">
               <div className="text-2xl font-bold">
                 {totalTodos}
               </div>
-              <div className="text-sm text-white/80">Total Todos</div>
+              <div className="text-sm opacity-80">Total Todos</div>
             </div>
           </div>
 
@@ -366,7 +372,7 @@ export default function AnimatedHero({
               Add New Todo
             </button>
           </div>
-        </div>
+        </DynamicTextColor>
         
         {/* Time-specific decorative elements */}
         {timeOfDay === 'midnight' && (

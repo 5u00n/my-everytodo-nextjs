@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import { CustomFloatingDock } from '@/components/CustomFloatingDock';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { HomeViewSkeleton, CalendarSkeleton, ReportsSkeleton } from '@/components/Skeleton';
+import { DynamicTextColor } from '@/components/DynamicTextColor';
 import TaskDetailModal from './TaskDetailModal';
 import TodoModal from './TodoModal';
 import { format, isToday, isTomorrow, addDays, isWithinInterval, isPast } from 'date-fns';
@@ -427,15 +429,15 @@ export default function Dashboard() {
       case 'reports':
         return <ReportsView />;
       default:
-                return <HomeView 
-                  onNavigate={setCurrentView} 
-                  todaysTodos={getTodaysTodos()}
-                  upcomingTodos={getUpcomingTodos()}
-                  completedToday={getCompletedToday()}
-                  totalTodos={todos.length}
-                  onTaskClick={openTaskDetail}
-                  onToggleTodo={toggleTodo}
-                />;
+        return <HomeView 
+          onNavigate={setCurrentView} 
+          todaysTodos={getTodaysTodos()}
+          upcomingTodos={getUpcomingTodos()}
+          completedToday={getCompletedToday()}
+          totalTodos={todos.length}
+          onTaskClick={openTaskDetail}
+          onToggleTodo={toggleTodo}
+        />;
     }
   };
 
@@ -466,24 +468,20 @@ export default function Dashboard() {
     }
   ];
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  // Don't show full screen loading - let individual components handle their loading states
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <div className="bg-background border-b border-border shadow-sm safe-top">
-        <div className="flex justify-between items-center px-4 py-3">
+        <DynamicTextColor 
+          className="flex justify-between items-center px-4 py-3"
+          lightClassName="text-gray-900"
+          darkClassName="text-white"
+          threshold={128}
+        >
           <div className="flex items-center space-x-3">
-            <h1 className="text-xl md:text-2xl font-bold text-foreground">EveryTodo</h1>
+            <h1 className="text-xl md:text-2xl font-bold">EveryTodo</h1>
             <VersionDisplay showDetails={false} />
           </div>
                   <div className="flex items-center space-x-3">
@@ -529,20 +527,20 @@ export default function Dashboard() {
               <LogOut className="w-5 h-5" />
             </button>
           </div>
-        </div>
+        </DynamicTextColor>
       </div>
 
       {/* Main Content */}
-      <main className={`flex-1 ${currentView === 'calendar' ? 'pb-4' : 'pb-24'}`}>
+      <main className={`flex-1 ${currentView === 'calendar' ? 'pb-4' : 'pb-20'}`}>
         {renderCurrentView()}
       </main>
 
       {/* Floating Dock - macOS style */}
-      <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50">
+      <div className="fixed bottom-2 left-0 right-0 z-50 px-3 md:bottom-4 md:left-1/2 md:right-auto md:transform md:-translate-x-1/2 md:px-0">
         <CustomFloatingDock 
           items={dockItems}
           desktopClassName="bg-card/80 backdrop-blur-md border border-border shadow-lg"
-          mobileClassName="bg-card/90 backdrop-blur-md border border-border shadow-lg px-4 py-2"
+          mobileClassName="bg-card/90 backdrop-blur-md border border-border shadow-lg py-2 w-full"
         />
       </div>
 

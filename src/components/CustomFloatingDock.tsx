@@ -43,9 +43,9 @@ const CustomFloatingDockMobile = ({
 }) => {
 
   return (
-    <div className={cn("relative block md:hidden", className)}>
+    <div className={cn("relative block md:hidden w-full", className)}>
       <motion.div
-        className="flex flex-row gap-2 justify-center items-center"
+        className="flex flex-row gap-2 justify-between items-center w-full px-3"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
@@ -56,15 +56,17 @@ const CustomFloatingDockMobile = ({
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: idx * 0.1 }}
+            className="flex-1 flex justify-center"
           >
             <button
               onClick={item.onClick}
               className={cn(
-                "flex h-12 w-12 items-center justify-center rounded-full transition-all duration-200",
+                "flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-200",
                 item.isActive 
-                  ? "bg-primary text-primary-foreground shadow-lg scale-110" 
+                  ? "bg-primary text-primary-foreground shadow-lg scale-105" 
                   : "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground"
               )}
+              title={item.title}
             >
               <div className="h-5 w-5">{item.icon}</div>
             </button>
