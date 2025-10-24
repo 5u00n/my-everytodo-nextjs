@@ -36,6 +36,11 @@ class PushNotificationService {
     }
   }
 
+  // Check if push service is initialized
+  async isInitialized(): Promise<boolean> {
+    return this.registration !== null;
+  }
+
   // Request permission for push notifications
   async requestPermission(): Promise<NotificationPermission> {
     if (!this.registration) {

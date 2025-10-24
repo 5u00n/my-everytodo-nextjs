@@ -311,6 +311,51 @@ export default function Dashboard() {
     }
   };
 
+  // Listen for notification actions from service worker
+  useEffect(() => {
+    const handleServiceWorkerMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'NOTIFICATION_ACTION') {
+        const { action, todoId, minutes } = event.data;
+        
+        console.log('Received notification action:', action, 'for todo:', todoId);
+        
+        if (action === 'complete' && todoId) {
+          // Mark todo as completed
+          toggleTodo(todoId);
+          showNotification('Task completed!', { type: 'success' });
+        } else if (action === 'snooze' && todoId) {
+          // Reschedule alarm for snooze time
+          const snoozeTime = Date.now() + ((minutes || 5) * 60 * 1000);
+          const todo = todos.find(t => t.id === todoId);
+          if (todo) {
+            alarmManager.scheduleAlarm(
+              todoId,
+              todo.title,
+              snoozeTime,
+              todo.description,
+              (alarm) => {
+                showNotification(`🔔 ${alarm.title}`, { 
+                  type: 'info',
+                  duration: 0
+                });
+              }
+            );
+            showNotification(`Alarm snoozed for ${minutes || 5} minutes`, { type: 'info' });
+          }
+        } else if (action === 'dismiss') {
+          // Just dismiss - no action needed
+          showNotification('Alarm dismissed', { type: 'info' });
+        }
+      }
+    };
+
+    navigator.serviceWorker?.addEventListener('message', handleServiceWorkerMessage);
+
+    return () => {
+      navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage);
+    };
+  }, [todos, toggleTodo, showNotification]);
+
   // Get today's todos
   const getTodaysTodos = () => {
     return todos.filter(todo => {

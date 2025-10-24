@@ -80,49 +80,88 @@ class AlarmManager {
 
     console.log(`Alarm triggered: ${alarm.title}`);
     
-    // Show push notification (works even when app is closed)
+    // Check if we're in PWA mode or mobile
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                  (window.navigator as any).standalone === true ||
+                  document.referrer.includes('android-app://');
+    
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    console.log(`Alarm context - PWA: ${isPWA}, Mobile: ${isMobile}`);
+    
     try {
-      const notificationOptions: ExtendedNotificationOptions = {
-        body: alarm.body || 'Your todo alarm is ringing!',
-        requireInteraction: true,
-        vibrate: [300, 200, 300, 200, 300, 200, 300, 200, 300], // Enhanced for locked phones
-        tag: alarm.id,
-        silent: false, // Ensure sound plays even when locked
-        renotify: true, // Replace previous notifications
-        actions: [
-          { action: 'complete', title: 'Mark Done', icon: '/icon-192.svg' },
-          { action: 'snooze', title: 'Snooze 5min', icon: '/icon-192.svg' },
-          { action: 'dismiss', title: 'Dismiss', icon: '/icon-192.svg' }
-        ],
-        data: {
-          todoId: alarm.todoId,
-          alarmId: alarm.id,
-          type: 'alarm',
-          timestamp: Date.now()
+      if (isPWA || isMobile) {
+        // Check if push service is initialized before using it
+        const isPushServiceReady = await pushNotificationService.isInitialized();
+        
+        if (isPushServiceReady) {
+          // Use Service Worker notifications with actions for mobile/PWA
+          console.log('Using Service Worker notification for mobile/PWA');
+          await pushNotificationService.showLocalNotification(`🔔 ${alarm.title}`, {
+            body: alarm.body || 'Your todo alarm is ringing!',
+            icon: '/icon-192.svg',
+            badge: '/icon-192.svg',
+            tag: alarm.id,
+            requireInteraction: true,
+            vibrate: [300, 200, 300, 200, 300, 200, 300, 200, 300],
+            silent: false,
+            renotify: true,
+            actions: [
+              { action: 'complete', title: 'Mark Done', icon: '/icon-192.svg' },
+              { action: 'snooze', title: 'Snooze 5min', icon: '/icon-192.svg' },
+              { action: 'dismiss', title: 'Dismiss', icon: '/icon-192.svg' }
+            ],
+            data: {
+              todoId: alarm.todoId,
+              alarmId: alarm.id,
+              type: 'alarm',
+              timestamp: Date.now()
+            }
+          });
+        } else {
+          // Push service not ready, fall back to regular notification
+          console.log('Push service not ready, falling back to regular notification');
+          throw new Error('Push service not initialized');
         }
-      };
-      
-      // Use notification service for sound functionality
-      await notificationService.showNotification(alarm.title, {
-        body: alarm.body || 'Your todo alarm is ringing!',
-        requireInteraction: true,
-        vibrate: [300, 200, 300, 200, 300, 200, 300, 200, 300], // Enhanced for locked phones
-        tag: alarm.id,
-        silent: false, // Ensure sound plays even when locked
-        renotify: true, // Replace previous notifications
-        actions: [
-          { action: 'complete', title: 'Mark Done', icon: '/icon-192.svg' },
-          { action: 'snooze', title: 'Snooze 5min', icon: '/icon-192.svg' },
-          { action: 'dismiss', title: 'Dismiss', icon: '/icon-192.svg' }
-        ],
-        data: {
-          todoId: alarm.todoId,
-          alarmId: alarm.id,
-          action: 'alarm'
-        }
-      });
+      } else {
+        // Use regular notifications for desktop
+        console.log('Using regular notification for desktop');
+        await notificationService.showNotification(alarm.title, {
+          body: alarm.body || 'Your todo alarm is ringing!',
+          requireInteraction: true,
+          vibrate: [300, 200, 300, 200, 300, 200, 300, 200, 300],
+          tag: alarm.id,
+          silent: false,
+          renotify: true,
+          data: {
+            todoId: alarm.todoId,
+            alarmId: alarm.id,
+            action: 'alarm'
+          }
+        });
+      }
     } catch (error) {
       console.error('Error showing alarm notification:', error);
+      
+      // Fallback to regular notification if Service Worker fails
+      try {
+        console.log('Falling back to regular notification');
+        await notificationService.showNotification(alarm.title, {
+          body: alarm.body || 'Your todo alarm is ringing!',
+          requireInteraction: true,
+          vibrate: [300, 200, 300, 200, 300, 200, 300, 200, 300],
+          tag: alarm.id,
+          silent: false,
+          renotify: true,
+          data: {
+            todoId: alarm.todoId,
+            alarmId: alarm.id,
+            action: 'alarm'
+          }
+        });
+      } catch (fallbackError) {
+        console.error('Fallback notification also failed:', fallbackError);
+      }
     }
 
     // Trigger callback if registered
