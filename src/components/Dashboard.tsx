@@ -96,13 +96,17 @@ export default function Dashboard() {
       return;
     }
 
-    // Request notification permission for alarms
-    if (alarmManager.isNotificationSupported()) {
-      alarmManager.requestPermission();
-    }
+    const initializeAndLoadTodos = async () => {
+      // Request notification permission for alarms
+      if (alarmManager.isNotificationSupported()) {
+        alarmManager.requestPermission();
+      }
 
-    // Initialize push notifications
-    initializePushNotifications();
+      // Initialize push notifications
+      await initializePushNotifications();
+    };
+
+    initializeAndLoadTodos();
 
     const todosRef = ref(database, `todos/${user.id}`);
     
@@ -235,11 +239,17 @@ export default function Dashboard() {
 
   // Alarm popup handlers
   const handleAlarmDismiss = () => {
+    // Cancel all alarms for this todo to stop alarm completely
+    if (alarmData?.todoId) {
+      alarmManager.cancelAlarmsForTodo(alarmData.todoId);
+    }
     setShowAlarmPopup(false);
     setAlarmData(null);
   };
 
   const handleAlarmComplete = (todoId: string) => {
+    // Cancel all alarms for this todo to stop alarm completely
+    alarmManager.cancelAlarmsForTodo(todoId);
     // Mark todo as completed
     toggleTodo(todoId);
     setShowAlarmPopup(false);
@@ -247,6 +257,9 @@ export default function Dashboard() {
   };
 
   const handleAlarmSnooze = (todoId: string, minutes: number) => {
+    // Cancel current alarm first
+    alarmManager.cancelAlarmsForTodo(todoId);
+    
     // Reschedule alarm for snooze time
     const snoozeTime = Date.now() + (minutes * 60 * 1000);
     const todo = todos.find(t => t.id === todoId);

@@ -1,6 +1,6 @@
 {
   "name": "my-everytodo-nextjs",
-  "version": "0.1.76",
+  "version": "0.1.85",
   "private": true,
   "scripts": {
     "dev": "node scripts/version-manager.js && node scripts/generate-sw.js && next dev",

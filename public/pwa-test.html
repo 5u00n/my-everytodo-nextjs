@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA Installation Test</title>
+    <link rel="manifest" href="/manifest.json">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <h1>PWA Installation Test</h1>
+    
+    <div id="status-container">
+        <h2>Installation Status</h2>
+        <div id="status-messages"></div>
+    </div>
+    
+    <div id="install-section" class="hidden">
+        <h2>Install App</h2>
+        <button id="install-btn">Install EveryTodo App</button>
+    </div>
+    
+    <div id="debug-info">
+        <h2>Debug Information</h2>
+        <div id="debug-content"></div>
+    </div>
+
+    <script>
+        let deferredPrompt;
+        const statusContainer = document.getElementById('status-messages');
+        const installSection = document.getElementById('install-section');
+        const installBtn = document.getElementById('install-btn');
+        const debugContent = document.getElementById('debug-content');
+
+        function addStatus(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.textContent = message;
+            statusContainer.appendChild(div);
+        }
+
+        function addDebugInfo(label, value) {
+            const div = document.createElement('div');
+            div.innerHTML = `<strong>${label}:</strong> ${value}`;
+            debugContent.appendChild(div);
+        }
+
+        // Check PWA requirements
+        function checkPWARequirements() {
+            addDebugInfo('User Agent', navigator.userAgent);
+            addDebugInfo('Protocol', window.location.protocol);
+            addDebugInfo('Host', window.location.host);
+            addDebugInfo('Service Worker Support', 'serviceWorker' in navigator ? 'Yes' : 'No');
+            addDebugInfo('HTTPS', window.location.protocol === 'https:' ? 'Yes' : 'No');
+            addDebugInfo('Display Mode', window.matchMedia('(display-mode: standalone)').matches ? 'Standalone' : 'Browser');
+            
+            // Check manifest
+            fetch('/manifest.json')
+                .then(response => response.json())
+                .then(manifest => {
+                    addDebugInfo('Manifest Name', manifest.name);
+                    addDebugInfo('Manifest Icons', manifest.icons ? manifest.icons.length : 'None');
+                    addDebugInfo('Manifest Display', manifest.display);
+                    addDebugInfo('Manifest Start URL', manifest.start_url);
+                })
+                .catch(error => {
+                    addStatus('Error loading manifest: ' + error.message, 'error');
+                });
+        }
+
+        // Check service worker
+        function checkServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistration()
+                    .then(registration => {
+                        if (registration) {
+                            addStatus('Service Worker is registered', 'success');
+                            addDebugInfo('Service Worker State', registration.active ? registration.active.state : 'No active worker');
+                        } else {
+                            addStatus('Service Worker is not registered', 'error');
+                        }
+                    })
+                    .catch(error => {
+                        addStatus('Error checking service worker: ' + error.message, 'error');
+                    });
+            } else {
+                addStatus('Service Worker not supported', 'error');
+            }
+        }
+
+        // Install button handler
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                addStatus(`Install prompt outcome: ${outcome}`, outcome === 'accepted' ? 'success' : 'warning');
+                deferredPrompt = null;
+                installSection.classList.add('hidden');
+            } else {
+                addStatus('Install prompt not available', 'error');
+            }
+        });
+
+        // Listen for beforeinstallprompt event
+        window.addEventListener('beforeinstallprompt', (e) => {
+            addStatus('Install prompt is available', 'success');
+            e.preventDefault();
+            deferredPrompt = e;
+            installSection.classList.remove('hidden');
+        });
+
+        // Listen for appinstalled event
+        window.addEventListener('appinstalled', () => {
+            addStatus('App was installed successfully!', 'success');
+            installSection.classList.add('hidden');
+        });
+
+        // Check if already installed
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            addStatus('App is already installed and running in standalone mode', 'success');
+        }
+
+        // Initialize checks
+        checkPWARequirements();
+        checkServiceWorker();
+    </script>
+</body>
+</html>

@@ -4,36 +4,50 @@
   "description": "A comprehensive alarm, todo, and calendar application with persistent notifications",
   "start_url": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "prefer_related_applications": false,
   "background_color": "#ffffff",
   "theme_color": "#3b82f6",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "scope": "/",
   "lang": "en",
   "dir": "ltr",
   "categories": ["productivity", "utilities", "lifestyle"],
   "icons": [
     {
-      "src": "/icon-192.svg",
-      "sizes": "192x192",
-      "type": "image/svg+xml",
+      "src": "/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-512.svg",
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-192.svg",
+      "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/icon-512.svg",
+      "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "maskable"
     }
   ],
@@ -45,9 +59,9 @@
       "url": "/?action=create",
       "icons": [
         {
-          "src": "/icon-192.svg",
+          "src": "/icon-192.png",
           "sizes": "192x192",
-          "type": "image/svg+xml"
+          "type": "image/png"
         }
       ]
     },
@@ -58,9 +72,9 @@
       "url": "/?view=calendar",
       "icons": [
         {
-          "src": "/icon-192.svg",
+          "src": "/icon-192.png",
           "sizes": "192x192",
-          "type": "image/svg+xml"
+          "type": "image/png"
         }
       ]
     }

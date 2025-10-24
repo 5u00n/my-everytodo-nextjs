@@ -26,11 +26,11 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/icon-192.svg", sizes: "192x192", type: "image/svg+xml" },
-      { url: "/icon-512.svg", sizes: "512x512", type: "image/svg+xml" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
     apple: [
-      { url: "/icon-192.svg", sizes: "192x192", type: "image/svg+xml" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
     ],
   },
   other: {
@@ -46,8 +46,8 @@ export const metadata: Metadata = {
 export const viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  maximumScale: 5,
+  userScalable: true,
   themeColor: "#3b82f6",
   viewportFit: "cover",
 };
@@ -61,7 +61,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <link rel="apple-touch-icon" href="/icon-192.svg" />
+        <link rel="apple-touch-icon" href="/icon-192.png" />
         <meta name="application-name" content="EveryTodo" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -72,6 +72,11 @@ export default function RootLayout({
         <meta name="msapplication-TileColor" content="#3b82f6" />
         <meta name="msapplication-tap-highlight" content="no" />
         <meta name="theme-color" content="#3b82f6" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="application-name" content="EveryTodo" />
+        <meta name="apple-touch-fullscreen" content="yes" />
+        <meta name="apple-mobile-web-app-orientations" content="portrait-any" />
         {process.env.NODE_ENV === 'development' && (
           <>
             <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
@@ -132,8 +137,11 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               if ('serviceWorker' in navigator) {
-                // Only register service worker in production
-                if (window.location.hostname !== 'localhost') {
+                // Register service worker in both production and development for tablet testing
+                const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                const isDevelopment = window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1');
+                
+                if (!isDevelopment || window.location.search.includes('sw=true')) {
                   window.addEventListener('load', function() {
                     navigator.serviceWorker.register('/sw.js')
                       .then(function(registration) {

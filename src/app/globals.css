@@ -168,7 +168,36 @@
   height: calc(100vh - 160px); /* Account for header, dock, and navigation */
 }
 
-@media (min-width: 768px) {
+/* Tablet-specific styles */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .calendar-maximized {
+    height: calc(100vh - 140px); /* Account for header, dock, and navigation on tablet */
+  }
+  
+  /* Improve touch targets for tablets */
+  .mobile-button {
+    min-height: 48px;
+    padding: 12px 24px;
+  }
+  
+  /* Better spacing for tablet layout */
+  .bottom-nav {
+    margin: 0 12px;
+    width: calc(100% - 24px);
+    left: 12px;
+    right: 12px;
+    border-radius: 18px 18px 0 0;
+  }
+  
+  /* Improve text readability on tablets */
+  body {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+}
+
+/* Desktop styles */
+@media (min-width: 1025px) {
   .calendar-maximized {
     height: calc(100vh - 140px); /* Account for header, dock, and navigation on desktop */
   }
@@ -211,6 +240,22 @@
     left: 16px;
     right: 16px;
     border-radius: 20px 20px 0 0;
+  }
+}
+
+/* Tablet orientation handling */
+@media (orientation: landscape) and (min-width: 768px) and (max-width: 1024px) {
+  .bottom-nav {
+    margin: 0 16px;
+    width: calc(100% - 32px);
+    left: 16px;
+    right: 16px;
+    border-radius: 20px 20px 0 0;
+  }
+  
+  .mobile-button {
+    min-height: 44px;
+    padding: 10px 20px;
   }
 }
 

@@ -1,7 +1,7 @@
 // Service Worker with automatic updates and cache management
 // This will be generated with a unique version on each build
 
-const CACHE_VERSION = '1761310257737-ba7ff66'; // This will be replaced during build
+const CACHE_VERSION = '1761311170486-b370c21'; // This will be replaced during build
 const CACHE_NAME = `everytodo-v${CACHE_VERSION}`;
 const STATIC_CACHE_NAME = `everytodo-static-v${CACHE_VERSION}`;
 
@@ -9,8 +9,10 @@ const STATIC_CACHE_NAME = `everytodo-static-v${CACHE_VERSION}`;
 const STATIC_URLS = [
   '/',
   '/manifest.json',
-  '/icon-192.svg',
-  '/icon-512.svg',
+  '/icon-144.png',
+  '/icon-192.png',
+  '/icon-384.png',
+  '/icon-512.png',
   '/_next/static/css/',
   '/_next/static/js/'
 ];

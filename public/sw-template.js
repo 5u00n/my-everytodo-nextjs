@@ -9,8 +9,10 @@ const STATIC_CACHE_NAME = `everytodo-static-v${CACHE_VERSION}`;
 const STATIC_URLS = [
   '/',
   '/manifest.json',
-  '/icon-192.svg',
-  '/icon-512.svg',
+  '/icon-144.png',
+  '/icon-192.png',
+  '/icon-384.png',
+  '/icon-512.png',
   '/_next/static/css/',
   '/_next/static/js/'
 ];

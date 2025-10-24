@@ -156,15 +156,20 @@ export default function AlarmPopup({
       if (!context) {
         context = new (window.AudioContext || (window as any).webkitAudioContext)();
         setAudioContext(context);
+        console.log('AudioContext created:', context.state);
       }
 
       if (context.state === 'suspended') {
+        console.log('AudioContext suspended, attempting to resume...');
         await context.resume();
+        console.log('AudioContext resumed:', context.state);
       }
 
       // Calculate how long each repeat should play
       const repeatDurationMs = (duration * 60 * 1000) / repeatCount; // Duration per repeat in ms
       const repeatDurationSeconds = repeatDurationMs / 1000;
+      
+      console.log(`Playing ${alarmSoundType} alarm sound for ${repeatDurationSeconds}s`);
       
       // Play alarm sound based on type
       if (alarmSoundType === 'extreme') {
@@ -205,7 +210,9 @@ export default function AlarmPopup({
         startVibration();
       }
     } catch (error) {
-      console.log('Audio alarm not supported:', error);
+      console.error('Audio alarm failed:', error);
+      // Try to show a visual indicator that sound failed
+      console.log('Alarm sound failed - check browser audio permissions and user interaction');
     }
   };
 
@@ -403,9 +410,25 @@ export default function AlarmPopup({
     }
   };
 
-  // Handle user interaction to enable vibration
-  const handleUserInteraction = () => {
+  // Handle user interaction to enable vibration and audio
+  const handleUserInteraction = async () => {
     setUserHasInteracted(true);
+    
+    // Try to resume AudioContext if it's suspended
+    if (audioContext && audioContext.state === 'suspended') {
+      try {
+        await audioContext.resume();
+        console.log('AudioContext resumed after user interaction:', audioContext.state);
+        
+        // If alarm is playing but no sound, try to restart
+        if (isPlaying && !activeOscillator) {
+          console.log('Restarting alarm sound after user interaction');
+          playAlarmSound();
+        }
+      } catch (error) {
+        console.error('Failed to resume AudioContext:', error);
+      }
+    }
   };
 
   if (!isVisible) return null;
