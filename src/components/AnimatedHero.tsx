@@ -48,11 +48,11 @@ export default function AnimatedHero({
     // Early Morning: 7:31 AM - 9:30 AM
     if (timeInMinutes >= 451 && timeInMinutes < 570) return 'early-morning';
     
-    // Late Morning: 9:30 AM - 12:00 PM
+    // Late Morning: 9:30 AM - 11:59 AM
     if (timeInMinutes >= 570 && timeInMinutes < 720) return 'late-morning';
     
-    // Afternoon: 12:01 PM - 3:00 PM
-    if (timeInMinutes >= 721 && timeInMinutes < 900) return 'afternoon';
+    // Afternoon: 12:00 PM - 3:00 PM
+    if (timeInMinutes >= 720 && timeInMinutes < 900) return 'afternoon';
     
     // Evening: 3:31 PM - 5:30 PM
     if (timeInMinutes >= 931 && timeInMinutes < 1050) return 'evening';

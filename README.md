@@ -39,21 +39,25 @@ This repository includes a comprehensive mobile API infrastructure for future na
 #### 🔧 Getting Started with Mobile API
 
 1. **Switch to Mobile Branch**:
+
    ```bash
    git checkout mobile-api-integration
    ```
 
 2. **Install Dependencies**:
+
    ```bash
    npm install
    ```
 
 3. **Configure Environment**:
+
    - Set up Firebase Admin SDK credentials
    - Configure VAPID keys for push notifications
    - See `MOBILE_API_SETUP.md` for detailed instructions
 
 4. **Start Development Server**:
+
    ```bash
    npm run dev
    ```
@@ -66,6 +70,7 @@ This repository includes a comprehensive mobile API infrastructure for future na
 #### 🏗️ Mobile App Integration
 
 The mobile API is designed to work with:
+
 - **React Native** - Complete integration examples provided
 - **Flutter** - Dart/Flutter examples included
 - **Native iOS/Android** - REST API compatible with any HTTP client

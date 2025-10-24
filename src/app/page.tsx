@@ -3,13 +3,14 @@
 import { useAuth } from '@/contexts/AuthContext';
 import LoginPage from '@/components/LoginPage';
 import Dashboard from '@/components/Dashboard';
+import { HomeViewSkeleton } from '@/components/Skeleton';
 
 export default function Home() {
   const { user, loading } = useAuth();
 
-  // Show login page immediately, let Dashboard handle its own loading
+  // Show skeleton during initial auth loading, not login page
   if (loading) {
-    return <LoginPage />;
+    return <HomeViewSkeleton />;
   }
 
   if (!user) {
